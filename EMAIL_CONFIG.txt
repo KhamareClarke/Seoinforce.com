@@ -1,0 +1,19 @@
+# Create a file named .env.local in your project root with these contents:
+
+EMAIL_USER=khamareclarke@gmail.com
+EMAIL_PASS=your-app-password-here
+AUDIT_EMAIL=khamareclarke@gmail.com
+BOOKING_EMAIL=khamareclarke@gmail.com
+
+# Instructions:
+# 1. Create .env.local file in the project root
+# 2. Copy the above content into it
+# 3. Replace 'your-app-password-here' with your Gmail App Password
+# 4. To get an App Password:
+#    - Go to Google Account settings
+#    - Security → 2-Step Verification → App passwords
+#    - Generate a new app password for "Mail"
+#    - Use that password above (not your regular Gmail password)
+
+# After creating .env.local, restart your development server:
+# npm run dev

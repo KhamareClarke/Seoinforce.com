@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="400" height="240">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#FF6B6B"/>
+      <stop offset="100%" style="stop-color:#FFD700"/>
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4ECDC4"/>
+      <stop offset="100%" style="stop-color:#45B7D1"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="400" height="240" fill="#0b0b0b"/>
+  
+  <!-- Grid lines -->
+  <g stroke="#333" stroke-width="0.5" opacity="0.5">
+    <line x1="60" y1="40" x2="360" y2="40"/>
+    <line x1="60" y1="80" x2="360" y2="80"/>
+    <line x1="60" y1="120" x2="360" y2="120"/>
+    <line x1="60" y1="160" x2="360" y2="160"/>
+    <line x1="60" y1="200" x2="360" y2="200"/>
+  </g>
+  
+  <!-- Y-axis labels -->
+  <text x="45" y="205" fill="#C0C0C0" font-size="10" text-anchor="end">0</text>
+  <text x="45" y="165" fill="#C0C0C0" font-size="10" text-anchor="end">25K</text>
+  <text x="45" y="125" fill="#C0C0C0" font-size="10" text-anchor="end">50K</text>
+  <text x="45" y="85" fill="#C0C0C0" font-size="10" text-anchor="end">75K</text>
+  <text x="45" y="45" fill="#C0C0C0" font-size="10" text-anchor="end">100K</text>
+  
+  <!-- Bars -->
+  <!-- Before (Red) -->
+  <rect x="100" y="140" width="80" height="60" fill="url(#grad1)" rx="4"/>
+  <text x="140" y="225" fill="#C0C0C0" font-size="12" text-anchor="middle">Before</text>
+  <text x="140" y="135" fill="#FFD700" font-size="14" font-weight="bold" text-anchor="middle">35K</text>
+  
+  <!-- After (Green) -->
+  <rect x="220" y="60" width="80" height="140" fill="url(#grad2)" rx="4"/>
+  <text x="260" y="225" fill="#C0C0C0" font-size="12" text-anchor="middle">After</text>
+  <text x="260" y="50" fill="#4ECDC4" font-size="14" font-weight="bold" text-anchor="middle">77K</text>
+  
+  <!-- Growth arrow and percentage -->
+  <path d="M 190 100 L 210 100 L 205 95 M 210 100 L 205 105" stroke="#FFD700" stroke-width="2" fill="none"/>
+  <text x="200" y="90" fill="#FFD700" font-size="16" font-weight="bold" text-anchor="middle">+120%</text>
+  
+  <!-- Title -->
+  <text x="200" y="25" fill="#FFD700" font-size="16" font-weight="bold" text-anchor="middle">SEO Traffic Growth</text>
+  
+  <!-- Timeline -->
+  <text x="200" y="235" fill="#C0C0C0" font-size="10" text-anchor="middle">90 Days with SEOInForce</text>
+</svg>

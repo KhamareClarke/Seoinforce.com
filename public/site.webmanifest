@@ -1,0 +1,22 @@
+{
+  "name": "SEOInForce - SEO Audit Tool UK",
+  "short_name": "SEOInForce",
+  "description": "AI-powered SEO audits, competitor analysis, and white-label reports trusted by 10,000+ businesses",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#FFD700",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en-GB",
+  "dir": "ltr",
+  "scope": "/"
+}
