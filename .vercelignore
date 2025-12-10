@@ -1,0 +1,4 @@
+# Vercel ignore file
+.next/cache
+node_modules
+.git
