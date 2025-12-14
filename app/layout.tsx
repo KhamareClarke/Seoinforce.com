@@ -79,7 +79,7 @@ export const metadata: Metadata = {
     canonical: 'https://seoinforce.com',
   },
   verification: {
-    google: 'your-google-verification-code',
+    google: 'GXVs-eMv05iHfDzBdM6yn6G48s1anIZixaeZHaeWHw0',
     yandex: 'your-yandex-verification-code',
   },
 };

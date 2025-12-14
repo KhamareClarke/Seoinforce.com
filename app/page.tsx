@@ -308,7 +308,7 @@ export default function Home() {
               <span className="inline-flex items-center justify-center h-16 sm:h-18 md:h-20 w-16 sm:w-18 md:w-20 rounded-full ring-2 ring-yellow-400 bg-yellow-400 overflow-hidden">
                 <img src="/logo.svg" alt="SEOInForce shield logo" className="h-14 sm:h-16 md:h-18 w-14 sm:w-16 md:w-18 rounded-full object-cover" />
               </span>
-              <span className="hero-gradient-text font-extrabold text-2xl sm:text-3xl md:text-4xl tracking-tight drop-shadow">SEO in Force</span>
+              <span className="hero-gradient-text font-extrabold text-xl sm:text-2xl md:text-3xl tracking-tight drop-shadow">SEO in Force</span>
             </div>
             {/* Desktop Navigation */}
             <ul className="hidden md:flex items-center gap-2 lg:gap-3 font-semibold text-base">
@@ -369,23 +369,23 @@ export default function Home() {
               </span>
             </div>
             {/* Hero headline (metallic gold gradient) */}
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold mb-5 tracking-tight hero-gradient-text drop-shadow-lg text-center leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 tracking-tight hero-gradient-text drop-shadow-lg text-center leading-tight">
               Dominate Search. <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400">Command Authority.</span>
             </h1>
             {/* Subheadline with SEO keywords */}
-            <p className="text-lg sm:text-xl md:text-2xl text-[#C0C0C0] mb-8 max-w-4xl mx-auto leading-relaxed animate-fade-in text-center">
+            <p className="text-base sm:text-lg md:text-xl text-[#C0C0C0] mb-8 max-w-4xl mx-auto leading-relaxed animate-fade-in text-center">
               <span className="font-semibold">SEO Audit Tool UK</span> – AI-powered audits, <span className="font-semibold">Competitor Analysis Software</span>, <span className="font-semibold">White-Label SEO Reports for Agencies</span>, and <span className="font-semibold">Done-for-You SEO Services</span> trusted by 10,000+ businesses.
             </p>
             {/* CTA buttons */}
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-10 animate-fade-in">
-              <Button className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 px-16 py-8 text-2xl font-bold rounded-2xl shadow-[0_20px_60px_-15px_rgba(250,204,21,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.7)] hover:scale-[1.03] transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900 border-2 border-yellow-400/50" asChild>
+              <Button className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_20px_60px_-15px_rgba(250,204,21,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.7)] hover:scale-[1.03] transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900 border-2 border-yellow-400/50" asChild>
                 <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-4 text-slate-900">
                   <span className="relative z-10 font-extrabold tracking-wide">Start Free Analysis</span>
                   <ArrowRight className="h-7 w-7 relative z-10 group-hover:translate-x-1 transition-transform duration-500" />
                   <span className="absolute inset-0 bg-gradient-to-br from-yellow-200 via-yellow-300 to-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
                 </a>
               </Button>
-              <Button className="group relative overflow-hidden bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 text-white border-2 border-yellow-400/60 px-16 py-8 text-2xl font-bold rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.4)] hover:scale-[1.03] backdrop-blur-sm transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900" asChild>
+              <Button className="group relative overflow-hidden bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 text-white border-2 border-yellow-400/60 px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.4)] hover:scale-[1.03] backdrop-blur-sm transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900" asChild>
                 <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="relative z-10">
                   <span className="font-extrabold tracking-wide bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-300 bg-clip-text text-transparent group-hover:from-yellow-200 group-hover:via-yellow-300 group-hover:to-yellow-200 transition-all duration-500">Book Consultation</span>
                   <span className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-700 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
@@ -418,23 +418,23 @@ export default function Home() {
 
       {/* Proof Section (Trust Signals) */}
       <section className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16 py-32">
-        <h2 className="text-5xl md:text-6xl lg:text-7xl font-extrabold hero-gradient-text text-center mb-24">Proof & Testimonials</h2>
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold hero-gradient-text text-center mb-24">Proof & Testimonials</h2>
         {/* Stats Bar */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-24">
           <div className="text-center p-12 rounded-3xl bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border-2 border-yellow-400/40 shadow-2xl">
-            <p className="text-6xl md:text-7xl font-extrabold hero-gradient-text mb-5">+1M</p>
+            <p className="text-4xl md:text-5xl font-extrabold hero-gradient-text mb-5">+1M</p>
             <p className="text-[#C0C0C0] font-semibold text-xl">Audits delivered</p>
           </div>
           <div className="text-center p-12 rounded-3xl bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border-2 border-yellow-400/40 shadow-2xl">
-            <p className="text-6xl md:text-7xl font-extrabold hero-gradient-text mb-5">87%</p>
+            <p className="text-4xl md:text-5xl font-extrabold hero-gradient-text mb-5">87%</p>
             <p className="text-[#C0C0C0] font-semibold text-xl">Faster ranking improvements</p>
           </div>
           <div className="text-center p-12 rounded-3xl bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border-2 border-yellow-400/40 shadow-2xl">
-            <p className="text-6xl md:text-7xl font-extrabold hero-gradient-text mb-5">20+ Countries</p>
+            <p className="text-4xl md:text-5xl font-extrabold hero-gradient-text mb-5">20+ Countries</p>
             <p className="text-[#C0C0C0] font-semibold text-xl">Agencies trust us</p>
           </div>
           <div className="text-center p-12 rounded-3xl bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border-2 border-yellow-400/40 shadow-2xl">
-            <p className="text-6xl md:text-7xl font-extrabold hero-gradient-text mb-5">£25M+</p>
+            <p className="text-4xl md:text-5xl font-extrabold hero-gradient-text mb-5">£25M+</p>
             <p className="text-[#C0C0C0] font-semibold text-xl">Client revenue influenced</p>
           </div>
         </div>
@@ -446,8 +446,8 @@ export default function Home() {
                 <img src={testimonials[testimonialIndex].face} alt={`${testimonials[testimonialIndex].name} profile`} className="h-full w-full rounded-full object-cover" />
               </div>
             </div>
-            <p className="hero-gradient-text font-extrabold text-3xl md:text-4xl mb-8 leading-relaxed">{testimonials[testimonialIndex].quote}</p>
-            <p className="text-[#C0C0C0] text-2xl font-semibold">{testimonials[testimonialIndex].name}, {testimonials[testimonialIndex].company}</p>
+            <p className="hero-gradient-text font-extrabold text-xl md:text-2xl mb-8 leading-relaxed">{testimonials[testimonialIndex].quote}</p>
+            <p className="text-[#C0C0C0] text-lg font-semibold">{testimonials[testimonialIndex].name}, {testimonials[testimonialIndex].company}</p>
           </div>
           <div className="flex items-center justify-center gap-4 mt-10">
             {testimonials.map((_, i) => (
@@ -460,7 +460,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {[1,2,3].map((n) => (
               <div key={n} className="rounded-3xl p-12 bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border-2 border-yellow-400/40 shadow-2xl flex flex-col items-center">
-                <h3 className="text-3xl md:text-4xl font-extrabold hero-gradient-text mb-8">Case Study {n}: Before/After</h3>
+                <h3 className="text-2xl md:text-3xl font-extrabold hero-gradient-text mb-8">Case Study {n}: Before/After</h3>
                 {n === 1 && (
   <div className="aspect-video rounded-xl bg-gradient-to-b from-[#0b0b0b] via-[#1a1a1a] to-[#e5e5e5]/10 border border-yellow-400/30 flex items-center justify-center text-[#C0C0C0] mb-3">
     <img src="/charts/chart1.svg" alt="SEO traffic before and after using SEOInForce – Case Study 1" className="h-full w-auto object-contain" />
@@ -489,40 +489,40 @@ export default function Home() {
 
       {/* Consultation Section */}
       <section className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16 py-32">
-        <h2 className="text-5xl md:text-6xl lg:text-7xl font-extrabold hero-gradient-text text-center mb-24">Book a Consultation</h2>
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold hero-gradient-text text-center mb-24">Book a Consultation</h2>
         <Card className="p-16 md:p-20 bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border-2 border-yellow-400/40 shadow-2xl rounded-3xl">
           <div className="grid md:grid-cols-2 gap-16">
             <div className="space-y-12 flex flex-col justify-center">
-              <h3 className="text-4xl md:text-5xl font-extrabold hero-gradient-text mb-6">Maximize Your SEO Performance</h3>
-              <p className="text-[#C0C0C0] text-xl md:text-2xl font-medium mb-8 leading-relaxed">Book a consultation with our SEO experts and get personalized strategies for your website.</p>
+              <h3 className="text-2xl md:text-3xl font-extrabold hero-gradient-text mb-6">Maximize Your SEO Performance</h3>
+              <p className="text-[#C0C0C0] text-base md:text-lg font-medium mb-8 leading-relaxed">Book a consultation with our SEO experts and get personalized strategies for your website.</p>
               <div className="space-y-8">
                 <div className="flex items-start gap-6">
                   <Rocket className="h-10 w-10 text-yellow-500 flex-shrink-0" />
                   <div>
-                    <h4 className="font-extrabold hero-gradient-text text-2xl mb-3">Expert Analysis</h4>
-                    <p className="text-xl text-[#C0C0C0] leading-relaxed">Get a detailed review of your website&apos;s SEO performance and opportunities.</p>
+                    <h4 className="font-extrabold hero-gradient-text text-lg mb-3">Expert Analysis</h4>
+                    <p className="text-base text-[#C0C0C0] leading-relaxed">Get a detailed review of your website&apos;s SEO performance and opportunities.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <Star className="h-10 w-10 text-yellow-500 flex-shrink-0" />
                   <div>
-                    <h4 className="font-extrabold hero-gradient-text text-2xl mb-3">Custom Strategy</h4>
-                    <p className="text-xl text-[#C0C0C0] leading-relaxed">Receive a tailored SEO strategy designed for your specific goals.</p>
+                    <h4 className="font-extrabold hero-gradient-text text-lg mb-3">Custom Strategy</h4>
+                    <p className="text-base text-[#C0C0C0] leading-relaxed">Receive a tailored SEO strategy designed for your specific goals.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-6">
                   <Activity className="h-10 w-10 text-yellow-500 flex-shrink-0" />
                   <div>
-                    <h4 className="font-extrabold hero-gradient-text text-2xl mb-3">Performance Tracking</h4>
-                    <p className="text-xl text-[#C0C0C0] leading-relaxed">Learn how to monitor and improve your rankings over time.</p>
+                    <h4 className="font-extrabold hero-gradient-text text-lg mb-3">Performance Tracking</h4>
+                    <p className="text-base text-[#C0C0C0] leading-relaxed">Learn how to monitor and improve your rankings over time.</p>
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex flex-col justify-center items-center rounded-3xl p-12 bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border-2 border-yellow-400/30 shadow-2xl">
-              <h4 className="text-4xl font-extrabold hero-gradient-text mb-6">Book Your Consultation</h4>
-              <p className="text-[#C0C0C0] text-2xl mb-12 text-center leading-relaxed">Schedule a 30-minute consultation with our SEO experts.</p>
-               <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 hover:shadow-2xl hover:shadow-yellow-400/50 font-bold py-6 text-xl rounded-2xl shadow-xl hover:scale-[1.03] transition-all duration-500 border-2 border-yellow-400/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900" asChild>
+              <h4 className="text-2xl font-extrabold hero-gradient-text mb-6">Book Your Consultation</h4>
+              <p className="text-[#C0C0C0] text-lg mb-12 text-center leading-relaxed">Schedule a 30-minute consultation with our SEO experts.</p>
+               <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 hover:shadow-2xl hover:shadow-yellow-400/50 font-bold py-6 text-lg rounded-2xl shadow-xl hover:scale-[1.03] transition-all duration-500 border-2 border-yellow-400/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900" asChild>
                  <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer">
                    <span className="hidden sm:inline">Schedule Now</span>
                    <span className="sm:hidden">Book Call</span>
@@ -535,7 +535,7 @@ export default function Home() {
 
       {/* Pricing Section */}
       <section className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16 py-32">
-        <h2 className="text-5xl md:text-6xl lg:text-7xl font-extrabold hero-gradient-text text-center mb-24">Transparent Pricing</h2>
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold hero-gradient-text text-center mb-24">Transparent Pricing</h2>
         {/* Pricing Toggle */}
         <div className="flex flex-col items-center gap-4 mb-12">
           <span className="inline-flex items-center px-7 py-3 rounded-full bg-yellow-400/20 text-yellow-400 font-bold text-sm tracking-wider shadow animate-fade-in">
@@ -565,11 +565,11 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-12">
             {/* Starter */}
             <Card className="relative p-12 bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border-2 border-yellow-400/30 shadow-2xl rounded-3xl flex flex-col items-center">
-  <h3 className="text-4xl md:text-5xl font-extrabold hero-gradient-text mb-5">Starter</h3>
-  <p className="text-[#C0C0C0] mb-6 text-xl md:text-2xl font-semibold">Perfect for Small Sites & Freelancers</p>
-  <p className="text-[#FFD700] italic mb-8 text-lg leading-relaxed">"Run monthly audits, track 100 keywords, and fix hidden SEO issues before they cost you rankings."</p>
-  <p className="text-6xl font-extrabold hero-gradient-text mb-6">£49<span className="text-xl text-[#C0C0C0]">/mo</span></p>
-  <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 font-bold text-xl py-6 rounded-2xl shadow-[0_20px_60px_-15px_rgba(250,204,21,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.7)] hover:scale-[1.03] transition-all duration-500 border-2 border-yellow-400/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900 mt-6">Get Started Today &rarr;</Button>
+  <h3 className="text-2xl md:text-3xl font-extrabold hero-gradient-text mb-5">Starter</h3>
+  <p className="text-[#C0C0C0] mb-6 text-base md:text-lg font-semibold">Perfect for Small Sites & Freelancers</p>
+  <p className="text-[#FFD700] italic mb-8 text-sm leading-relaxed">"Run monthly audits, track 100 keywords, and fix hidden SEO issues before they cost you rankings."</p>
+  <p className="text-4xl font-extrabold hero-gradient-text mb-6">£49<span className="text-lg text-[#C0C0C0]">/mo</span></p>
+  <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 font-bold text-base py-5 rounded-2xl shadow-[0_20px_60px_-15px_rgba(250,204,21,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.7)] hover:scale-[1.03] transition-all duration-500 border-2 border-yellow-400/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900 mt-6">Get Started Today &rarr;</Button>
   <div className="flex items-center gap-2 mt-4 text-xs text-[#FFD700] font-medium">
     <Shield className="h-4 w-4" aria-label="SSL Secure" /> SSL Secure
     <span className="mx-1">|</span>
@@ -581,11 +581,11 @@ export default function Home() {
             {/* Growth (Most Popular) */}
             <Card className="relative p-12 border-2 border-yellow-400 bg-gradient-to-b from-[#232323] via-[#1a1a1a] to-[#e5e5e5]/10 shadow-2xl rounded-3xl flex flex-col items-center scale-105 z-10">
   <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-6 py-2 text-base font-extrabold rounded-full bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-slate-900 shadow-lg">Most Popular</div>
-  <h3 className="text-4xl md:text-5xl font-extrabold hero-gradient-text mb-5">Growth</h3>
-  <p className="text-[#C0C0C0] mb-6 text-xl md:text-2xl font-semibold">For Growing Teams & Agencies</p>
-  <p className="text-[#FFD700] italic mb-8 text-lg leading-relaxed">"Weekly competitor battle reports, AI-driven keyword insights, and 1,000 keywords tracked — helping you outrank rivals and grow traffic 10x faster."</p>
-  <p className="text-6xl font-extrabold hero-gradient-text mb-6">£249<span className="text-xl text-[#C0C0C0]">/mo</span></p>
-  <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 font-bold text-xl py-6 rounded-2xl shadow-[0_20px_60px_-15px_rgba(250,204,21,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.7)] hover:scale-[1.03] transition-all duration-500 border-2 border-yellow-400/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900 mt-6">Get Started Today &rarr;</Button>
+  <h3 className="text-2xl md:text-3xl font-extrabold hero-gradient-text mb-5">Growth</h3>
+  <p className="text-[#C0C0C0] mb-6 text-base md:text-lg font-semibold">For Growing Teams & Agencies</p>
+  <p className="text-[#FFD700] italic mb-8 text-sm leading-relaxed">"Weekly competitor battle reports, AI-driven keyword insights, and 1,000 keywords tracked — helping you outrank rivals and grow traffic 10x faster."</p>
+  <p className="text-4xl font-extrabold hero-gradient-text mb-6">£249<span className="text-lg text-[#C0C0C0]">/mo</span></p>
+  <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 font-bold text-base py-5 rounded-2xl shadow-[0_20px_60px_-15px_rgba(250,204,21,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.7)] hover:scale-[1.03] transition-all duration-500 border-2 border-yellow-400/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900 mt-6">Get Started Today &rarr;</Button>
   <div className="flex items-center gap-2 mt-4 text-xs text-[#FFD700] font-medium">
     <Shield className="h-4 w-4" aria-label="SSL Secure" /> SSL Secure
     <span className="mx-1">|</span>
@@ -596,11 +596,11 @@ export default function Home() {
 </Card>
             {/* Empire */}
             <Card className="relative p-12 bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border-2 border-yellow-400/30 shadow-2xl rounded-3xl flex flex-col items-center">
-  <h3 className="text-4xl md:text-5xl font-extrabold hero-gradient-text mb-5">Empire</h3>
-  <p className="text-[#C0C0C0] mb-6 text-xl md:text-2xl font-semibold">For Agencies & Enterprises Ready to Dominate</p>
-  <p className="text-[#FFD700] italic mb-8 text-lg leading-relaxed">"Unlimited keyword tracking, daily competitor monitoring, white-label reporting suite, and a dedicated manager so you can command entire markets with enterprise-grade SEO intelligence."</p>
-  <p className="text-6xl font-extrabold hero-gradient-text mb-6">£499<span className="text-xl text-[#C0C0C0]">/mo</span></p>
-  <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 font-bold text-xl py-6 rounded-2xl shadow-[0_20px_60px_-15px_rgba(250,204,21,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.7)] hover:scale-[1.03] transition-all duration-500 border-2 border-yellow-400/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900 mt-6">Get Started Today &rarr;</Button>
+  <h3 className="text-2xl md:text-3xl font-extrabold hero-gradient-text mb-5">Empire</h3>
+  <p className="text-[#C0C0C0] mb-6 text-base md:text-lg font-semibold">For Agencies & Enterprises Ready to Dominate</p>
+  <p className="text-[#FFD700] italic mb-8 text-sm leading-relaxed">"Unlimited keyword tracking, daily competitor monitoring, white-label reporting suite, and a dedicated manager so you can command entire markets with enterprise-grade SEO intelligence."</p>
+  <p className="text-4xl font-extrabold hero-gradient-text mb-6">£499<span className="text-lg text-[#C0C0C0]">/mo</span></p>
+  <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 font-bold text-base py-5 rounded-2xl shadow-[0_20px_60px_-15px_rgba(250,204,21,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.7)] hover:scale-[1.03] transition-all duration-500 border-2 border-yellow-400/50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900 mt-6">Get Started Today &rarr;</Button>
   <div className="flex items-center gap-2 mt-4 text-xs text-[#FFD700] font-medium">
     <Shield className="h-4 w-4" aria-label="SSL Secure" /> SSL Secure
     <span className="mx-1">|</span>
