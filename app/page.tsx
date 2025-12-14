@@ -300,26 +300,26 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-black to-[#C0C0C0]/10">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-gradient-to-b from-[#0b0b0b] via-[#181818] to-[#e5e5e5]/10 backdrop-blur border-b border-[#d9d9d9]/30 shadow-xl py-8">
+      <nav className="sticky top-0 z-50 bg-gradient-to-b from-[#0b0b0b] via-[#181818] to-[#e5e5e5]/10 backdrop-blur border-b border-[#d9d9d9]/30 shadow-xl py-4">
         <div className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16">
-          <div className="flex items-center justify-between" style={{ minHeight: '72px' }}>
+          <div className="flex items-center justify-between" style={{ minHeight: '48px' }}>
             {/* Logo with gold ring */}
             <div className="flex items-center gap-4 sm:gap-5 md:gap-6">
-              <span className="inline-flex items-center justify-center h-16 sm:h-18 md:h-20 w-16 sm:w-18 md:w-20 rounded-full ring-2 ring-yellow-400 bg-yellow-400 overflow-hidden">
-                <img src="/logo.svg" alt="SEOInForce shield logo" className="h-14 sm:h-16 md:h-18 w-14 sm:w-16 md:w-18 rounded-full object-cover" />
+              <span className="inline-flex items-center justify-center h-12 sm:h-14 md:h-16 w-12 sm:w-14 md:w-16 rounded-full ring-2 ring-yellow-400 bg-yellow-400 overflow-hidden">
+                <img src="/logo.svg" alt="SEOInForce shield logo" className="h-10 sm:h-12 md:h-14 w-10 sm:w-12 md:w-14 rounded-full object-cover" />
               </span>
-              <span className="hero-gradient-text font-extrabold text-xl sm:text-2xl md:text-3xl tracking-tight drop-shadow">SEO in Force</span>
+              <span className="hero-gradient-text font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight drop-shadow">SEO in Force</span>
             </div>
             {/* Desktop Navigation */}
-            <ul className="hidden md:flex items-center gap-2 lg:gap-3 font-semibold text-base">
-              <li><a href="/products" className="px-6 py-3 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Products</a></li>
-              <li><a href="/features" className="px-6 py-3 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Features</a></li>
-              <li><a href="/pricing" className="px-6 py-3 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Pricing</a></li>
-              <li><a href="/blog" className="px-6 py-3 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Blog</a></li>
-              <li><a href="/faq" className="px-6 py-3 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />FAQ</a></li>
-              <li><a href="/support" className="px-6 py-3 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Support</a></li>
+            <ul className="hidden md:flex items-center gap-2 lg:gap-3 font-semibold text-sm">
+              <li><a href="/products" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Products</a></li>
+              <li><a href="/features" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Features</a></li>
+              <li><a href="/pricing" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Pricing</a></li>
+              <li><a href="/blog" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Blog</a></li>
+              <li><a href="/faq" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />FAQ</a></li>
+              <li><a href="/support" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Support</a></li>
               <li>
-                <a href="/sign-in" className="ml-8 px-8 py-3 rounded-xl font-bold bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-slate-900 hover:shadow-2xl hover:shadow-yellow-400/40 hover:scale-105 shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-yellow-400/60 focus:ring-offset-2 focus:ring-offset-slate-900">
+                <a href="/sign-in" className="ml-6 px-6 py-2 rounded-lg font-bold bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-slate-900 hover:shadow-2xl hover:shadow-yellow-400/40 hover:scale-105 shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-yellow-400/60 focus:ring-offset-2 focus:ring-offset-slate-900">
                   Sign In
                 </a>
               </li>
@@ -353,14 +353,14 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden min-h-[1000px] flex flex-col justify-center">
+      <section className="relative overflow-hidden min-h-[700px] flex flex-col justify-center">
         {/* Animated decorative glows (chrome themed) */}
         <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-3xl animate-pulse bg-gradient-to-br from-white/10 via-[#C0C0C0]/15 to-[#1a1a1a]/10" />
         <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full blur-3xl animate-pulse animation-delay-1000 bg-gradient-to-br from-white/8 via-[#C0C0C0]/12 to-[#0b0b0b]/10" />
         {/* Floating shapes (chrome themed) */}
         <div className="absolute left-1/3 top-10 w-32 h-32 rounded-full blur-2xl animate-float bg-gradient-to-br from-white/40 via-[#C0C0C0]/40 to-[#9ca3af]/30" />
 
-        <div className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16 pt-16 pb-40 relative z-10">
+        <div className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16 pt-8 pb-20 relative z-10">
           <div className="text-center mb-20">
             {/* Trust chip */}
             <div className="flex flex-col items-center gap-2 mb-4">
