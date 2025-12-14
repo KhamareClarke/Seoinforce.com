@@ -353,12 +353,17 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden min-h-[700px] flex flex-col justify-center bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.08)_0%,transparent_65%)] animate-pulse-slow">
+      <section className="relative overflow-hidden min-h-[700px] flex flex-col justify-center bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.1)_0%,transparent_70%)] animate-pulse-slow">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#000_0%,rgba(0,0,0,0.8)_50%,#000_100%)] opacity-90"></div>
+        <div className="absolute w-full h-full bg-[url('/grid.svg')] opacity-20 animate-float-slow"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-black via-transparent to-black opacity-60"></div>
         {/* Animated decorative glows (chrome themed) */}
-        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-3xl animate-pulse bg-gradient-to-br from-white/10 via-[#C0C0C0]/15 to-[#1a1a1a]/10" />
-        <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full blur-3xl animate-pulse animation-delay-1000 bg-gradient-to-br from-white/8 via-[#C0C0C0]/12 to-[#0b0b0b]/10" />
-        {/* Floating shapes (chrome themed) */}
-        <div className="absolute left-1/3 top-10 w-32 h-32 rounded-full blur-2xl animate-float bg-gradient-to-br from-white/40 via-[#C0C0C0]/40 to-[#9ca3af]/30" />
+        <div className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full blur-3xl animate-pulse bg-gradient-to-br from-yellow-400/20 via-[#C0C0C0]/15 to-[#1a1a1a]/10" />
+        <div className="absolute -bottom-32 -right-32 w-[600px] h-[600px] rounded-full blur-3xl animate-pulse animation-delay-1000 bg-gradient-to-br from-yellow-500/15 via-[#C0C0C0]/12 to-[#0b0b0b]/10" />
+        {/* Animated floating orbs */}
+        <div className="absolute left-1/4 top-1/4 w-48 h-48 rounded-full blur-3xl animate-float-slow bg-gradient-to-br from-yellow-400/20 via-yellow-500/10 to-transparent" />
+        <div className="absolute right-1/4 bottom-1/4 w-48 h-48 rounded-full blur-3xl animate-float-slow animation-delay-2000 bg-gradient-to-br from-yellow-400/15 via-yellow-500/10 to-transparent" />
 
         <div className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16 pt-8 pb-20 relative z-10">
           <div className="text-center mb-20">
@@ -369,11 +374,12 @@ export default function Home() {
               </span>
             </div>
             {/* Hero headline (metallic gold gradient) */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 tracking-tight hero-gradient-text drop-shadow-[0_2px_20px_rgba(250,204,21,0.3)] text-center leading-[1.1] animate-fade-in">
-              Dominate Search. <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400">Command Authority.</span>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 tracking-tight hero-gradient-text drop-shadow-[0_2px_30px_rgba(250,204,21,0.4)] text-center leading-[1.1] animate-fade-in-up">
+              <span className="animate-text-shimmer bg-clip-text text-transparent bg-[linear-gradient(to_right,#ffd700,#fff,#ffd700)] bg-[length:200%_auto] animate-shimmer">
+              Dominate Search.</span> <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 animate-text-glow">Command Authority.</span>
             </h1>
             {/* Subheadline with SEO keywords */}
-            <p className="text-base sm:text-lg md:text-xl text-[#C0C0C0] mb-10 max-w-3xl mx-auto leading-relaxed animate-fade-in text-center drop-shadow-lg font-medium">
+            <p className="text-lg sm:text-xl md:text-2xl text-[#C0C0C0] mb-12 max-w-3xl mx-auto leading-relaxed animate-fade-in-up delay-200 text-center drop-shadow-lg font-medium">
               <span className="font-semibold">SEO Audit Tool UK</span> – AI-powered audits, <span className="font-semibold">Competitor Analysis Software</span>, <span className="font-semibold">White-Label SEO Reports for Agencies</span>, and <span className="font-semibold">Done-for-You SEO Services</span> trusted by 10,000+ businesses.
             </p>
             {/* CTA buttons */}
@@ -393,13 +399,13 @@ export default function Home() {
               </Button>
             </div>
             {/* Trust Carousel: 5-Star + Logos */}
-            <div className="flex flex-col items-center mb-0">
-              <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex flex-col items-center mt-20 mb-0 animate-fade-in-up delay-500">
+              <div className="flex items-center gap-3 mb-3">
                 {[...Array(5)].map((_, i) => (
-                  <svg key={i} aria-label="star" className="h-6 w-6 text-yellow-400 drop-shadow-[0_2px_6px_rgba(250,204,21,0.3)] transition-all duration-300 hover:drop-shadow-[0_2px_8px_rgba(250,204,21,0.4)] hover:scale-110" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15.27L16.18 18l-1.64-7.03L19 7.24l-7.19-.61L10 0 8.19 6.63 1 7.24l5.46 3.73L4.82 18z"/></svg>
+                  <svg key={i} aria-label="star" className="h-8 w-8 text-yellow-400 drop-shadow-[0_2px_8px_rgba(250,204,21,0.4)] transition-all duration-300 hover:drop-shadow-[0_2px_12px_rgba(250,204,21,0.5)] hover:scale-110 animate-pulse-star" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15.27L16.18 18l-1.64-7.03L19 7.24l-7.19-.61L10 0 8.19 6.63 1 7.24l5.46 3.73L4.82 18z"/></svg>
                 ))}
               </div>
-              <span className="text-base text-[#FFD700] font-semibold tracking-wide mb-6 drop-shadow-[0_2px_8px_rgba(250,204,21,0.2)] transition-all duration-300 hover:drop-shadow-[0_2px_12px_rgba(250,204,21,0.3)]">Rated 5/5 by 10,000+ businesses</span>
+              <span className="text-xl text-[#FFD700] font-bold tracking-wide mb-8 drop-shadow-[0_2px_10px_rgba(250,204,21,0.3)] transition-all duration-300 hover:drop-shadow-[0_2px_15px_rgba(250,204,21,0.4)] animate-pulse-slow">Rated 5/5 by 10,000+ businesses</span>
               <div className="w-full flex justify-center">
                 <div className="flex items-center justify-center gap-12 sm:gap-16 md:gap-20 lg:gap-24 px-6 sm:px-8 md:px-10 py-8 sm:py-10 md:py-12 flex-wrap bg-gradient-to-b from-black/50 via-black/30 to-transparent rounded-3xl backdrop-blur-sm border border-yellow-400/10 shadow-[0_10px_40px_-5px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_45px_-5px_rgba(0,0,0,0.35)] transition-all duration-500">
                   <img src="/client1-Photoroom.png" alt="Client Partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
