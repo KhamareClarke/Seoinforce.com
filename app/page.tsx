@@ -380,16 +380,16 @@ export default function Home() {
               </span>
             </div>
             {/* Hero headline (metallic gold gradient) */}
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 tracking-tight hero-gradient-text drop-shadow-[0_2px_30px_rgba(250,204,21,0.4)] text-center leading-[1.1] animate-fade-in-up">
-              <span className="relative animate-text-shimmer bg-clip-text text-transparent bg-[linear-gradient(to_right,#ffd700,#fff,#ffd700)] bg-[length:200%_auto] animate-shimmer after:absolute after:inset-0 after:bg-gradient-to-r after:from-yellow-400/0 after:via-yellow-400/30 after:to-yellow-400/0 after:animate-shine after:transform after:translate-x-[-200%]">
-              Dominate Search.</span> <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 animate-text-glow">Command Authority.</span>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 tracking-tight hero-gradient-text drop-shadow-[0_2px_20px_rgba(250,204,21,0.3)] text-center leading-[1.1] animate-fade-in">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400">
+              Dominate Search.</span> <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-[#ffd700] to-yellow-400">Command Authority.</span>
             </h1>
             {/* Subheadline with SEO keywords */}
             <p className="text-lg sm:text-xl md:text-2xl text-[#C0C0C0] mb-12 max-w-3xl mx-auto leading-relaxed animate-fade-in-up delay-200 text-center drop-shadow-lg font-medium">
               <span className="font-semibold">SEO Audit Tool UK</span> – AI-powered audits, <span className="font-semibold">Competitor Analysis Software</span>, <span className="font-semibold">White-Label SEO Reports for Agencies</span>, and <span className="font-semibold">Done-for-You SEO Services</span> trusted by 10,000+ businesses.
             </p>
             {/* CTA buttons */}
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-10 animate-fade-in">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-8 animate-fade-in">
               <Button className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.02] transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-black border border-yellow-400/50 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-1000" asChild>
                 <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-4 text-slate-900">
                   <span className="relative z-10 font-extrabold tracking-wide">Start Free Analysis</span>
@@ -405,13 +405,13 @@ export default function Home() {
               </Button>
             </div>
             {/* Trust Carousel: 5-Star + Logos */}
-            <div className="flex flex-col items-center mt-20 mb-0 animate-fade-in-up delay-500">
+            <div className="flex flex-col items-center mt-8 mb-0 animate-fade-in-up">
               <div className="flex items-center gap-3 mb-3">
                 {[...Array(5)].map((_, i) => (
                   <svg key={i} aria-label="star" className="h-8 w-8 text-yellow-400 drop-shadow-[0_2px_8px_rgba(250,204,21,0.4)] transition-all duration-300 hover:drop-shadow-[0_2px_12px_rgba(250,204,21,0.5)] hover:scale-110 animate-pulse-star" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15.27L16.18 18l-1.64-7.03L19 7.24l-7.19-.61L10 0 8.19 6.63 1 7.24l5.46 3.73L4.82 18z"/></svg>
                 ))}
               </div>
-              <span className="text-xl text-[#FFD700] font-bold tracking-wide mb-8 drop-shadow-[0_2px_10px_rgba(250,204,21,0.3)] transition-all duration-300 hover:drop-shadow-[0_2px_15px_rgba(250,204,21,0.4)] animate-pulse-slow">Rated 5/5 by 10,000+ businesses</span>
+              <span className="text-xl text-[#FFD700] font-bold tracking-wide mb-6 drop-shadow-[0_2px_10px_rgba(250,204,21,0.3)] transition-all duration-300 hover:drop-shadow-[0_2px_15px_rgba(250,204,21,0.4)]">Rated 5/5 by 10,000+ businesses</span>
               <div className="w-full flex justify-center">
                 <div className="flex items-center justify-center gap-12 sm:gap-16 md:gap-20 lg:gap-24 px-6 sm:px-8 md:px-10 py-8 sm:py-10 md:py-12 flex-wrap bg-gradient-to-b from-black/50 via-black/30 to-transparent rounded-3xl backdrop-blur-sm border border-yellow-400/10 shadow-[0_10px_40px_-5px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_45px_-5px_rgba(0,0,0,0.35)] transition-all duration-500 before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-r before:from-transparent before:via-yellow-400/5 before:to-transparent before:animate-pulse-border">
                   <img src="/client1-Photoroom.png" alt="Client Partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
