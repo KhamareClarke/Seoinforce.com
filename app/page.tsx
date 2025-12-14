@@ -376,7 +376,7 @@ export default function Home() {
             {/* Trust chip */}
             <div className="flex flex-col items-center gap-2 mb-4">
               <span className="inline-flex items-center px-6 py-2.5 rounded-full bg-gradient-to-r from-yellow-400/20 via-yellow-500/20 to-yellow-400/20 text-yellow-400 font-semibold text-sm tracking-wide shadow-[0_4px_20px_-3px_rgba(250,204,21,0.2)] backdrop-blur-sm animate-fade-in border border-yellow-400/20 hover:border-yellow-400/30 hover:shadow-[0_4px_25px_-3px_rgba(250,204,21,0.25)] transition-all duration-300">
-                <Globe className="inline-block w-4 h-4 mr-2" aria-label="Globe icon - Trusted by 10,000+ websites" /> Trusted by 10,000+ websites
+                <Globe className="inline-block w-4 h-4 mr-2" aria-label="Globe icon - Trusted by 10,000+ websites" /> Trusted by <span className="text-[#FFD700]">10,000+</span> websites
               </span>
             </div>
             {/* Hero headline (metallic gold gradient) */}
@@ -390,16 +390,16 @@ export default function Home() {
             </p>
             {/* CTA buttons */}
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-8 animate-fade-in">
-              <Button className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.02] transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-black border border-yellow-400/50" asChild>
+              <Button className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.02] transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-black border-2 border-yellow-400/80 hover:border-yellow-400" asChild>
                 <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-4 text-slate-900">
                   <span className="relative z-10 font-extrabold tracking-wide">Start Free Analysis</span>
                   <ArrowRight className="h-7 w-7 relative z-10 group-hover:translate-x-1 transition-transform duration-500" />
                   <span className="absolute inset-0 bg-gradient-to-br from-yellow-200 via-yellow-300 to-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
                 </a>
               </Button>
-              <Button className="group relative overflow-hidden bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 text-white border-2 border-yellow-400/60 px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.4)] hover:scale-[1.03] backdrop-blur-sm transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900" asChild>
+              <Button className="group relative overflow-hidden bg-[#111] text-white border-2 border-yellow-400/60 hover:border-yellow-400/90 px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.4)] hover:scale-[1.02] backdrop-blur-sm transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-black" asChild>
                 <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="relative z-10">
-                  <span className="font-extrabold tracking-wide bg-gradient-to-r from-yellow-300 via-yellow-400 to-yellow-300 bg-clip-text text-transparent group-hover:from-yellow-200 group-hover:via-yellow-300 group-hover:to-yellow-200 transition-all duration-500">Book Consultation</span>
+                  <span className="font-extrabold tracking-wide text-[#FFD700] group-hover:text-yellow-300 transition-all duration-500">Book Consultation</span>
                   <span className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-700 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
                 </a>
               </Button>
@@ -411,7 +411,7 @@ export default function Home() {
                   <svg key={i} aria-label="star" className="h-8 w-8 text-yellow-400 drop-shadow-[0_2px_8px_rgba(250,204,21,0.4)] transition-all duration-300 hover:drop-shadow-[0_2px_12px_rgba(250,204,21,0.5)] hover:scale-110 animate-pulse-star" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15.27L16.18 18l-1.64-7.03L19 7.24l-7.19-.61L10 0 8.19 6.63 1 7.24l5.46 3.73L4.82 18z"/></svg>
                 ))}
               </div>
-              <span className="text-xl text-white font-bold tracking-wide mb-6 drop-shadow-[0_2px_10px_rgba(250,204,21,0.3)] transition-all duration-300 hover:drop-shadow-[0_2px_15px_rgba(250,204,21,0.4)]">Rated <span className="text-[#FFD700]">5/5</span> by 10,000+ businesses</span>
+              <span className="text-xl text-white font-bold tracking-wide mb-6 drop-shadow-[0_2px_10px_rgba(250,204,21,0.3)] transition-all duration-300 hover:drop-shadow-[0_2px_15px_rgba(250,204,21,0.4)]">Rated <span className="text-[#FFD700]">5/5</span> by <span className="text-[#FFD700]">10,000+</span> businesses</span>
               <div className="w-full flex justify-center">
                 <div className="flex items-center justify-center gap-12 sm:gap-16 md:gap-20 lg:gap-24 px-6 sm:px-8 md:px-10 py-8 sm:py-10 md:py-12 flex-wrap bg-gradient-to-b from-black/50 via-black/30 to-transparent rounded-3xl backdrop-blur-sm border border-yellow-400/10 shadow-[0_10px_40px_-5px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_45px_-5px_rgba(250,204,21,0.25)] hover:border-yellow-400/20 transition-all duration-500 before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-r before:from-transparent before:via-yellow-400/5 before:to-transparent before:animate-pulse-border">
                   <img src="/client1-Photoroom.png" alt="Client Partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
