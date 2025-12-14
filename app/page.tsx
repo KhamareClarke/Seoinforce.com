@@ -300,26 +300,26 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-black to-[#C0C0C0]/10">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-gradient-to-b from-[#0b0b0b] via-[#181818] to-[#e5e5e5]/10 backdrop-blur border-b border-[#d9d9d9]/30 shadow-xl py-4">
+      <nav className="sticky top-0 z-50 bg-gradient-to-b from-black via-[#0a0a0a] to-[#111]/80 backdrop-blur-xl border-b border-yellow-400/10 shadow-2xl py-4">
         <div className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16">
           <div className="flex items-center justify-between" style={{ minHeight: '48px' }}>
             {/* Logo with gold ring */}
             <div className="flex items-center gap-4 sm:gap-5 md:gap-6">
-              <span className="inline-flex items-center justify-center h-12 sm:h-14 md:h-16 w-12 sm:w-14 md:w-16 rounded-full ring-2 ring-yellow-400 bg-yellow-400 overflow-hidden">
+              <span className="inline-flex items-center justify-center h-12 sm:h-14 md:h-16 w-12 sm:w-14 md:w-16 rounded-full ring-[3px] ring-yellow-400/80 bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 overflow-hidden shadow-[0_0_15px_rgba(250,204,21,0.5)] transition-all duration-300 hover:shadow-[0_0_25px_rgba(250,204,21,0.6)] hover:scale-105">
                 <img src="/logo.svg" alt="SEOInForce shield logo" className="h-10 sm:h-12 md:h-14 w-10 sm:w-12 md:w-14 rounded-full object-cover" />
               </span>
-              <span className="hero-gradient-text font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight drop-shadow">SEO in Force</span>
+              <span className="hero-gradient-text font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight drop-shadow-[0_2px_10px_rgba(250,204,21,0.3)] transition-all duration-300 hover:drop-shadow-[0_2px_15px_rgba(250,204,21,0.4)]">SEO in Force</span>
             </div>
             {/* Desktop Navigation */}
-            <ul className="hidden md:flex items-center gap-2 lg:gap-3 font-semibold text-sm">
-              <li><a href="/products" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Products</a></li>
+            <ul className="hidden md:flex items-center gap-4 lg:gap-6 font-medium text-sm tracking-wide">
+              <li><a href="/products" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-300 transition-all duration-300 relative group focus:outline-none hover:drop-shadow-[0_0_8px_rgba(250,204,21,0.3)]"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Products</a></li>
               <li><a href="/features" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Features</a></li>
               <li><a href="/pricing" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Pricing</a></li>
               <li><a href="/blog" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Blog</a></li>
               <li><a href="/faq" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />FAQ</a></li>
               <li><a href="/support" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-400 transition-colors duration-200 relative group focus:outline-none"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Support</a></li>
               <li>
-                <a href="/sign-in" className="ml-6 px-6 py-2 rounded-lg font-bold bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-slate-900 hover:shadow-2xl hover:shadow-yellow-400/40 hover:scale-105 shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-yellow-400/60 focus:ring-offset-2 focus:ring-offset-slate-900">
+                <a href="/sign-in" className="ml-8 px-6 py-2.5 rounded-lg font-bold bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black hover:shadow-[0_8px_25px_-5px_rgba(250,204,21,0.5)] hover:scale-105 shadow-[0_8px_20px_-6px_rgba(250,204,21,0.3)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400/60 focus:ring-offset-2 focus:ring-offset-black border border-yellow-400/50">
                   Sign In
                 </a>
               </li>
@@ -353,7 +353,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden min-h-[700px] flex flex-col justify-center">
+      <section className="relative overflow-hidden min-h-[700px] flex flex-col justify-center bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.08)_0%,transparent_65%)] animate-pulse-slow">
         {/* Animated decorative glows (chrome themed) */}
         <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full blur-3xl animate-pulse bg-gradient-to-br from-white/10 via-[#C0C0C0]/15 to-[#1a1a1a]/10" />
         <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full blur-3xl animate-pulse animation-delay-1000 bg-gradient-to-br from-white/8 via-[#C0C0C0]/12 to-[#0b0b0b]/10" />
@@ -364,21 +364,21 @@ export default function Home() {
           <div className="text-center mb-20">
             {/* Trust chip */}
             <div className="flex flex-col items-center gap-2 mb-4">
-              <span className="inline-flex items-center px-6 py-2.5 rounded-full bg-yellow-400/20 text-yellow-400 font-semibold text-sm tracking-wide shadow-sm animate-fade-in">
+              <span className="inline-flex items-center px-6 py-2.5 rounded-full bg-gradient-to-r from-yellow-400/20 via-yellow-500/20 to-yellow-400/20 text-yellow-400 font-semibold text-sm tracking-wide shadow-[0_4px_20px_-3px_rgba(250,204,21,0.2)] backdrop-blur-sm animate-fade-in border border-yellow-400/20 hover:border-yellow-400/30 hover:shadow-[0_4px_25px_-3px_rgba(250,204,21,0.25)] transition-all duration-300">
                 <Globe className="inline-block w-4 h-4 mr-2" aria-label="Globe icon - Trusted by 10,000+ websites" /> Trusted by 10,000+ websites
               </span>
             </div>
             {/* Hero headline (metallic gold gradient) */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 tracking-tight hero-gradient-text drop-shadow-lg text-center leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 tracking-tight hero-gradient-text drop-shadow-[0_2px_20px_rgba(250,204,21,0.3)] text-center leading-[1.1] animate-fade-in">
               Dominate Search. <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400">Command Authority.</span>
             </h1>
             {/* Subheadline with SEO keywords */}
-            <p className="text-base sm:text-lg md:text-xl text-[#C0C0C0] mb-8 max-w-4xl mx-auto leading-relaxed animate-fade-in text-center">
+            <p className="text-base sm:text-lg md:text-xl text-[#C0C0C0] mb-10 max-w-3xl mx-auto leading-relaxed animate-fade-in text-center drop-shadow-lg font-medium">
               <span className="font-semibold">SEO Audit Tool UK</span> – AI-powered audits, <span className="font-semibold">Competitor Analysis Software</span>, <span className="font-semibold">White-Label SEO Reports for Agencies</span>, and <span className="font-semibold">Done-for-You SEO Services</span> trusted by 10,000+ businesses.
             </p>
             {/* CTA buttons */}
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-10 animate-fade-in">
-              <Button className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-slate-900 px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_20px_60px_-15px_rgba(250,204,21,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.7)] hover:scale-[1.03] transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900 border-2 border-yellow-400/50" asChild>
+              <Button className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.02] transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-black border border-yellow-400/50" asChild>
                 <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-4 text-slate-900">
                   <span className="relative z-10 font-extrabold tracking-wide">Start Free Analysis</span>
                   <ArrowRight className="h-7 w-7 relative z-10 group-hover:translate-x-1 transition-transform duration-500" />
@@ -396,18 +396,18 @@ export default function Home() {
             <div className="flex flex-col items-center mb-0">
               <div className="flex items-center gap-2 mb-1.5">
                 {[...Array(5)].map((_, i) => (
-                  <svg key={i} aria-label="star" className="h-6 w-6 text-yellow-400 drop-shadow" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15.27L16.18 18l-1.64-7.03L19 7.24l-7.19-.61L10 0 8.19 6.63 1 7.24l5.46 3.73L4.82 18z"/></svg>
+                  <svg key={i} aria-label="star" className="h-6 w-6 text-yellow-400 drop-shadow-[0_2px_6px_rgba(250,204,21,0.3)] transition-all duration-300 hover:drop-shadow-[0_2px_8px_rgba(250,204,21,0.4)] hover:scale-110" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15.27L16.18 18l-1.64-7.03L19 7.24l-7.19-.61L10 0 8.19 6.63 1 7.24l5.46 3.73L4.82 18z"/></svg>
                 ))}
               </div>
-              <span className="text-base text-[#FFD700] font-semibold tracking-wide mb-6">Rated 5/5 by 10,000+ businesses</span>
+              <span className="text-base text-[#FFD700] font-semibold tracking-wide mb-6 drop-shadow-[0_2px_8px_rgba(250,204,21,0.2)] transition-all duration-300 hover:drop-shadow-[0_2px_12px_rgba(250,204,21,0.3)]">Rated 5/5 by 10,000+ businesses</span>
               <div className="w-full flex justify-center">
-                <div className="flex items-center justify-center gap-10 sm:gap-12 md:gap-14 lg:gap-18 px-6 sm:px-8 md:px-10 py-4 sm:py-6 md:py-8 flex-wrap">
-                  <img src="/client1-Photoroom.png" alt="Client Partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-90 hover:opacity-100 transition-opacity" />
-                  <img src="/identi-logo.png" alt="Identi - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-90 hover:opacity-100 transition-opacity" />
-                  <img src="/myapproved-logo.png" alt="MyApproved - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-90 hover:opacity-100 transition-opacity" />
-                  <img src="/omni-logo.png" alt="Omni - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-90 hover:opacity-100 transition-opacity" />
-                  <img src="/6.svg" alt="Partner 6 - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-90 hover:opacity-100 transition-opacity" />
-                  <img src="/9.svg" alt="Partner 9 - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-90 hover:opacity-100 transition-opacity" />
+                <div className="flex items-center justify-center gap-12 sm:gap-16 md:gap-20 lg:gap-24 px-6 sm:px-8 md:px-10 py-8 sm:py-10 md:py-12 flex-wrap bg-gradient-to-b from-black/50 via-black/30 to-transparent rounded-3xl backdrop-blur-sm border border-yellow-400/10 shadow-[0_10px_40px_-5px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_45px_-5px_rgba(0,0,0,0.35)] transition-all duration-500">
+                  <img src="/client1-Photoroom.png" alt="Client Partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
+                  <img src="/identi-logo.png" alt="Identi - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
+                  <img src="/myapproved-logo.png" alt="MyApproved - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
+                  <img src="/omni-logo.png" alt="Omni - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
+                  <img src="/6.svg" alt="Partner 6 - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
+                  <img src="/9.svg" alt="Partner 9 - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
                 </div>
               </div>
             </div>
