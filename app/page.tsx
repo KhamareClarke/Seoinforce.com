@@ -353,9 +353,15 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden min-h-[700px] flex flex-col justify-center bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.1)_0%,transparent_70%)] animate-pulse-slow">
+      <section className="relative overflow-hidden min-h-[700px] flex flex-col justify-center bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.1)_0%,transparent_70%)] animate-pulse-slow before:absolute before:inset-0 before:bg-[url('/noise.svg')] before:opacity-20 before:mix-blend-soft-light before:pointer-events-none">
+        {/* Particle effect container */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full bg-yellow-400/50 animate-particle-1"></div>
+          <div className="absolute top-3/4 left-2/3 w-2 h-2 rounded-full bg-yellow-400/50 animate-particle-2"></div>
+          <div className="absolute top-1/2 right-1/4 w-2 h-2 rounded-full bg-yellow-400/50 animate-particle-3"></div>
+        </div>
         {/* Animated background elements */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#000_0%,rgba(0,0,0,0.8)_50%,#000_100%)] opacity-90"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#000_0%,rgba(0,0,0,0.8)_50%,#000_100%)] opacity-90 after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.15)_0%,transparent_50%)] after:animate-pulse-slow"></div>
         <div className="absolute w-full h-full bg-[url('/grid.svg')] opacity-20 animate-float-slow"></div>
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-black via-transparent to-black opacity-60"></div>
         {/* Animated decorative glows (chrome themed) */}
@@ -375,7 +381,7 @@ export default function Home() {
             </div>
             {/* Hero headline (metallic gold gradient) */}
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-8 tracking-tight hero-gradient-text drop-shadow-[0_2px_30px_rgba(250,204,21,0.4)] text-center leading-[1.1] animate-fade-in-up">
-              <span className="animate-text-shimmer bg-clip-text text-transparent bg-[linear-gradient(to_right,#ffd700,#fff,#ffd700)] bg-[length:200%_auto] animate-shimmer">
+              <span className="relative animate-text-shimmer bg-clip-text text-transparent bg-[linear-gradient(to_right,#ffd700,#fff,#ffd700)] bg-[length:200%_auto] animate-shimmer after:absolute after:inset-0 after:bg-gradient-to-r after:from-yellow-400/0 after:via-yellow-400/30 after:to-yellow-400/0 after:animate-shine after:transform after:translate-x-[-200%]">
               Dominate Search.</span> <span className="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 animate-text-glow">Command Authority.</span>
             </h1>
             {/* Subheadline with SEO keywords */}
@@ -384,7 +390,7 @@ export default function Home() {
             </p>
             {/* CTA buttons */}
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-10 animate-fade-in">
-              <Button className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.02] transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-black border border-yellow-400/50" asChild>
+              <Button className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black px-12 py-6 text-lg font-bold rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.02] transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-black border border-yellow-400/50 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-1000" asChild>
                 <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-4 text-slate-900">
                   <span className="relative z-10 font-extrabold tracking-wide">Start Free Analysis</span>
                   <ArrowRight className="h-7 w-7 relative z-10 group-hover:translate-x-1 transition-transform duration-500" />
@@ -407,7 +413,7 @@ export default function Home() {
               </div>
               <span className="text-xl text-[#FFD700] font-bold tracking-wide mb-8 drop-shadow-[0_2px_10px_rgba(250,204,21,0.3)] transition-all duration-300 hover:drop-shadow-[0_2px_15px_rgba(250,204,21,0.4)] animate-pulse-slow">Rated 5/5 by 10,000+ businesses</span>
               <div className="w-full flex justify-center">
-                <div className="flex items-center justify-center gap-12 sm:gap-16 md:gap-20 lg:gap-24 px-6 sm:px-8 md:px-10 py-8 sm:py-10 md:py-12 flex-wrap bg-gradient-to-b from-black/50 via-black/30 to-transparent rounded-3xl backdrop-blur-sm border border-yellow-400/10 shadow-[0_10px_40px_-5px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_45px_-5px_rgba(0,0,0,0.35)] transition-all duration-500">
+                <div className="flex items-center justify-center gap-12 sm:gap-16 md:gap-20 lg:gap-24 px-6 sm:px-8 md:px-10 py-8 sm:py-10 md:py-12 flex-wrap bg-gradient-to-b from-black/50 via-black/30 to-transparent rounded-3xl backdrop-blur-sm border border-yellow-400/10 shadow-[0_10px_40px_-5px_rgba(0,0,0,0.3)] hover:shadow-[0_15px_45px_-5px_rgba(0,0,0,0.35)] transition-all duration-500 before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-r before:from-transparent before:via-yellow-400/5 before:to-transparent before:animate-pulse-border">
                   <img src="/client1-Photoroom.png" alt="Client Partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
                   <img src="/identi-logo.png" alt="Identi - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />
                   <img src="/myapproved-logo.png" alt="MyApproved - Trusted partner" className="h-14 sm:h-16 md:h-20 lg:h-24 w-auto opacity-80 hover:opacity-100 transition-all duration-300 hover:scale-105 drop-shadow-[0_5px_15px_rgba(250,204,21,0.15)] hover:drop-shadow-[0_8px_25px_rgba(250,204,21,0.2)]" />

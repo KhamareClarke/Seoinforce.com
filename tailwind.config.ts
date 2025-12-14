@@ -86,6 +86,31 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'shine': {
+          '100%': { transform: 'translateX(200%)' },
+        },
+        'particle-1': {
+          '0%, 100%': { transform: 'translate(0, 0)' },
+          '25%': { transform: 'translate(100px, 50px)' },
+          '50%': { transform: 'translate(50px, 100px)' },
+          '75%': { transform: 'translate(-50px, 50px)' },
+        },
+        'particle-2': {
+          '0%, 100%': { transform: 'translate(0, 0)' },
+          '25%': { transform: 'translate(-70px, -50px)' },
+          '50%': { transform: 'translate(-100px, 0px)' },
+          '75%': { transform: 'translate(-50px, 50px)' },
+        },
+        'particle-3': {
+          '0%, 100%': { transform: 'translate(0, 0)' },
+          '25%': { transform: 'translate(100px, -50px)' },
+          '50%': { transform: 'translate(50px, -100px)' },
+          '75%': { transform: 'translate(-50px, -50px)' },
+        },
+        'pulse-border': {
+          '0%, 100%': { opacity: '0.1' },
+          '50%': { opacity: '0.3' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -95,6 +120,11 @@ const config: Config = {
         'float-slow': 'float-slow 6s ease-in-out infinite',
         'fade-in-up': 'fade-in-up 0.8s ease-out forwards',
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'shine': 'shine 1.5s ease-in-out infinite',
+        'particle-1': 'particle-1 20s ease-in-out infinite',
+        'particle-2': 'particle-2 25s ease-in-out infinite',
+        'particle-3': 'particle-3 30s ease-in-out infinite',
+        'pulse-border': 'pulse-border 2s ease-in-out infinite',
       },
     },
   },
