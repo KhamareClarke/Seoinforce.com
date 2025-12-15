@@ -57,17 +57,17 @@ export default function HomePage() {
     }, 1500);
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !isTyping) handleSendMessage();
   };
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: string, value: string) => {
     setUserData(prev => ({ ...prev, [field]: value }));
     if (formErrors[field]) setFormErrors(prev => ({ ...prev, [field]: '' }));
   };
 
   const handleFormSubmit = () => {
-    const errors = {};
+    const errors: Record<string, string> = {};
     if (!userData.name.trim()) errors.name = 'Name is required';
     if (!userData.email.trim()) errors.email = 'Email is required';
     if (!userData.phone.trim()) errors.phone = 'Phone is required';
