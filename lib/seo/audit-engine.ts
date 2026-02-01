@@ -428,9 +428,9 @@ export class SEOAuditEngine {
     
     // Extract words from all text sources
     const allText = bodyText.toLowerCase();
-    const words = allText
-      .match(/\b[a-z]{4,}\b/g) || []
-      .filter(word => !stopWords.has(word) && word.length >= 4);
+    const words = (allText
+      .match(/\b[a-z]{4,}\b/g) || [])
+      .filter((word: string) => !stopWords.has(word) && word.length >= 4);
     
     const wordFreq: Record<string, number> = {};
     
