@@ -25,7 +25,7 @@ export default function HomePage() {
   const [showDataForm, setShowDataForm] = useState(false);
   const [formType, setFormType] = useState(null);
   const [userData, setUserData] = useState({ name: '', email: '', phone: '', domain: '' });
-  const [formErrors, setFormErrors] = useState({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const chatEndRef = useRef(null);
 
   const testimonials = [
