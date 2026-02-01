@@ -36,6 +36,10 @@ export default function HomePage() {
   
   const [testimonialIndex, setTestimonialIndex] = useState(0);
   const [pricingTab, setPricingTab] = useState('saas');
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [auditUrl, setAuditUrl] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [auditResult, setAuditResult] = useState<any>(null);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -95,6 +99,48 @@ export default function HomePage() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isTyping]);
+
+  const handleAnalyzeWebsite = async () => {
+    if (!auditUrl.trim()) {
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAuditResult(null);
+
+    try {
+      const response = await fetch('/api/audit/guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: auditUrl }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to analyze website');
+      }
+
+      const data = await response.json();
+      console.log('Audit response:', data);
+      
+      // Ensure we have the scores
+      if (data.success && data.overall_score !== undefined) {
+        setAuditResult(data);
+      } else {
+        throw new Error('Invalid audit response format');
+      }
+      setIsAnalyzing(false);
+    } catch (error: any) {
+      console.error('Audit error:', error);
+      alert(error.message || 'Failed to analyze website. Please try again.');
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleDownloadReport = () => {
+    // Redirect to sign-in page instead of downloading
+    window.location.href = '/sign-in';
+  };
 
   return (
     <div className="min-h-screen bg-black">
@@ -171,12 +217,13 @@ export default function HomePage() {
               <span className="font-semibold">SEO Audit Tool UK</span> – AI-powered audits, <span className="font-semibold">Competitor Analysis Software</span>, <span className="font-semibold">White-Label SEO Reports for Agencies</span>, and <span className="font-semibold">Done-for-You SEO Services</span> trusted by 10,000+ businesses.
             </p>
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-8 animate-fade-in">
-              <Button className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black px-12 py-6 text-lg font-extrabold rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.03] hover:-translate-y-1 transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-black border-2 border-yellow-400/50" asChild>
-                <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-4 text-slate-900">
-                  <span className="relative z-10 font-extrabold tracking-wide text-xl">Start Free Analysis</span>
-                  <ArrowRight className="h-7 w-7 relative z-10 group-hover:translate-x-1 transition-transform duration-500" />
-                  <span className="absolute inset-0 bg-gradient-to-br from-yellow-200 via-yellow-300 to-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
-                </a>
+              <Button
+                onClick={() => setShowAuditModal(true)}
+                className="group relative overflow-hidden bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black px-12 py-6 text-lg font-extrabold rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.03] hover:-translate-y-1 transition-all duration-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-black border-2 border-yellow-400/50"
+              >
+                <span className="relative z-10 font-extrabold tracking-wide text-xl">Analyze My Website</span>
+                <ArrowRight className="h-7 w-7 relative z-10 ml-2 group-hover:translate-x-1 transition-transform duration-500" />
+                <span className="absolute inset-0 bg-gradient-to-br from-yellow-200 via-yellow-300 to-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
               </Button>
               <Button className="group relative overflow-hidden bg-gradient-to-br from-slate-800 via-slate-700 to-slate-800 text-white border-2 border-yellow-400/60 px-12 py-6 text-lg font-extrabold rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] hover:shadow-[0_25px_80px_-15px_rgba(250,204,21,0.4)] hover:scale-[1.03] hover:-translate-y-1 backdrop-blur-sm transition-all duration-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-yellow-400/60 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-900" asChild>
                 <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="relative z-10">
@@ -301,7 +348,9 @@ export default function HomePage() {
                 <p className="text-[#C0C0C0] mb-4 text-base font-medium">{plan.desc}</p>
                 <p className="text-5xl font-black text-[#FFD700] mb-6">{plan.price}<span className="text-lg text-[#C0C0C0]">/mo</span></p>
                 <p className="text-[#C0C0C0] text-sm mb-6 leading-relaxed">{plan.features}</p>
-                <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black font-extrabold text-lg py-6 rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.03] hover:-translate-y-1 transition-all duration-500 border-2 border-yellow-400/50">Get Started</Button>
+                <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black font-extrabold text-lg py-6 rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.03] hover:-translate-y-1 transition-all duration-500 border-2 border-yellow-400/50" asChild>
+                  <NextLink href="/sign-up">Get Started</NextLink>
+                </Button>
               </div>
             ))}
           </div>
@@ -320,7 +369,9 @@ export default function HomePage() {
                 <h3 className="text-3xl font-black text-white mb-3">{service.name}</h3>
                 <p className="text-[#FFD700] text-xl font-bold mb-4">{service.price}</p>
                 <p className="text-[#C0C0C0] text-base mb-6 leading-relaxed">{service.desc}</p>
-                <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black font-extrabold text-lg py-6 rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.03] hover:-translate-y-1 transition-all duration-500 border-2 border-yellow-400/50">Get Started</Button>
+                <Button className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black font-extrabold text-lg py-6 rounded-2xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.03] hover:-translate-y-1 transition-all duration-500 border-2 border-yellow-400/50" asChild>
+                  <NextLink href="/sign-up">Get Started</NextLink>
+                </Button>
               </div>
             ))}
           </div>
@@ -472,6 +523,98 @@ export default function HomePage() {
                 <Send className="h-4 w-4" />
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guest Audit Modal */}
+      {showAuditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 sm:p-6">
+          <div className="bg-gradient-to-b from-black/90 via-black/80 to-black/90 border-2 border-yellow-400/40 rounded-2xl p-6 sm:p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+            {!auditResult && !isAnalyzing && (
+              <>
+                <h3 className="text-2xl font-bold hero-gradient-text mb-4 text-center">Analyze My Website</h3>
+                <p className="text-[#C0C0C0] text-sm mb-6 text-center">Enter your website URL to get a free SEO audit</p>
+                <div className="space-y-4">
+                  <Input
+                    type="text"
+                    placeholder="example.com"
+                    value={auditUrl}
+                    onChange={(e) => setAuditUrl(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleAnalyzeWebsite()}
+                    className="bg-black/50 border-yellow-400/30 text-white placeholder:text-[#C0C0C0] focus:border-yellow-400"
+                  />
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleAnalyzeWebsite}
+                      disabled={!auditUrl.trim()}
+                      className="flex-1 bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black font-extrabold py-3 rounded-xl"
+                    >
+                      Analyze
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowAuditModal(false);
+                        setAuditUrl('');
+                        setAuditResult(null);
+                      }}
+                      className="flex-1 bg-[#232323] border border-yellow-400/30 text-[#FFD700] font-bold py-3 rounded-xl"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {isAnalyzing && (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-yellow-400 border-t-transparent mb-4"></div>
+                <h3 className="text-2xl font-bold text-white mb-2">Analyzing...</h3>
+                <p className="text-[#C0C0C0]">This may take up to 60 seconds</p>
+              </div>
+            )}
+
+            {auditResult && !isAnalyzing && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold hero-gradient-text mb-2">Analysis Complete!</h3>
+                  <p className="text-[#C0C0C0] text-sm mb-4">Your SEO audit is ready</p>
+                  <div className="bg-gradient-to-b from-black/50 via-black/30 to-transparent border border-yellow-400/20 rounded-xl p-6 mb-4">
+                    <div className="text-4xl font-black text-[#FFD700] mb-2">{auditResult.overall_score}</div>
+                    <div className="text-[#C0C0C0] text-sm">Overall SEO Score</div>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleDownloadReport}
+                  className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black font-extrabold py-3 rounded-xl"
+                >
+                  Download Report
+                </Button>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => {
+                      // Reset to allow analyzing another website
+                      setAuditUrl('');
+                      setAuditResult(null);
+                    }}
+                    className="flex-1 bg-[#232323] border border-yellow-400/30 text-[#FFD700] font-bold py-3 rounded-xl"
+                  >
+                    Analyze Another Website
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowAuditModal(false);
+                      setAuditUrl('');
+                      setAuditResult(null);
+                    }}
+                    className="flex-1 bg-[#232323] border border-yellow-400/30 text-[#FFD700] font-bold py-3 rounded-xl"
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

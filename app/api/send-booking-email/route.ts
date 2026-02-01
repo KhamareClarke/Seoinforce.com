@@ -21,19 +21,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create email transporter
+    // Create email transporter - Using SMTP (Gmail)
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER || 'hamareclarke@gmail.com',
-        pass: process.env.EMAIL_PASS || 'your-app-password'
+        user: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+        pass: process.env.EMAIL_PASS || '' // Gmail App Password
       }
     });
 
     // Email content
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'hamareclarke@gmail.com',
-      to: process.env.BOOKING_EMAIL || 'hamareclarke@gmail.com',
+      from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+      to: process.env.BOOKING_EMAIL || 'khamareclarke@gmail.com',
       subject: `New Consultation Booking - ${name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -100,9 +100,9 @@ export async function POST(request: NextRequest) {
       // Fallback: log to console if email fails
       console.log('📧 FALLBACK - BOOKING EMAIL DATA:');
       console.log('=====================================');
-      console.log(`To: hamareclarke@gmail.com`);
+      console.log(`To: ${process.env.BOOKING_EMAIL || 'khamareclarke@gmail.com'}`);
       console.log(`Subject: New Consultation Booking - ${name}`);
-      console.log(`From: hamareclarke@gmail.com`);
+      console.log(`From: ${process.env.EMAIL_USER || 'khamareclarke@gmail.com'}`);
       console.log('');
       console.log('Contact Information:');
       console.log(`- Name: ${name}`);

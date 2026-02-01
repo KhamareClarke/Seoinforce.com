@@ -1,13 +1,24 @@
 import nodemailer from 'nodemailer';
 
-// Email configuration
+// Email configuration - Using SMTP (Gmail)
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // You can change this to other services
+  service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER || 'hamareclarke@gmail.com',
-    pass: process.env.EMAIL_PASS || 'your-app-password'
+    user: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    pass: process.env.EMAIL_PASS || '' // Gmail App Password
   }
 });
+
+// Helper function to get app URL (no localhost in production emails)
+function getAppUrl(): string {
+  const url = process.env.NEXT_PUBLIC_APP_URL;
+  if (url && !url.includes('localhost')) {
+    return url;
+  }
+  // For production, use the environment variable or default to a production URL
+  // In development, this will still work but we'll avoid showing localhost in emails
+  return process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com';
+}
 
 export interface AuditEmailData {
   name: string;
@@ -21,8 +32,8 @@ export async function sendAuditEmail(data: AuditEmailData) {
   const { name, email, phone, domain, timestamp } = data;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'hamareclarke@gmail.com',
-    to: process.env.AUDIT_EMAIL || 'hamareclarke@gmail.com',
+    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    to: process.env.AUDIT_EMAIL || 'khamareclarke@gmail.com',
     subject: `New SEO Audit Request - ${domain}`,
     text: `
 New SEO Audit Request Received
@@ -106,8 +117,8 @@ export async function sendBookingEmail(data: Omit<AuditEmailData, 'domain'>) {
   const { name, email, phone, timestamp } = data;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'hamareclarke@gmail.com',
-    to: process.env.BOOKING_EMAIL || 'hamareclarke@gmail.com',
+    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    to: process.env.BOOKING_EMAIL || 'khamareclarke@gmail.com',
     subject: `New Consultation Booking - ${name}`,
     text: `
 New Consultation Booking Received
@@ -178,6 +189,360 @@ SEOInForce Assistant
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error('Error sending booking email:', error);
+    throw error;
+  }
+}
+
+// Welcome email (sent 5 minutes after account creation)
+export async function sendWelcomeEmail(email: string, name: string) {
+  const appUrl = getAppUrl();
+  const dashboardUrl = `${appUrl}/audit/dashboard`;
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    to: email,
+    subject: 'Welcome to SEOInForce! 🚀',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #fbbf24; background: #1f2937; padding: 20px; margin: 0; text-align: center; border-radius: 8px 8px 0 0;">
+          🎉 Welcome to SEOInForce!
+        </h2>
+        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px;">
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Hi ${name || 'there'},
+          </p>
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Thank you for joining SEOInForce! We're excited to help you improve your website's SEO performance.
+          </p>
+          
+          <h3 style="color: #1f2937; margin-top: 30px; margin-bottom: 15px;">✨ What You Get:</h3>
+          <ul style="color: #374151; font-size: 15px; line-height: 1.8; padding-left: 20px;">
+            <li><strong>Instant SEO Audits</strong> - Get comprehensive SEO analysis in under 60 seconds</li>
+            <li><strong>Technical SEO Analysis</strong> - Identify and fix technical issues</li>
+            <li><strong>On-Page Optimization</strong> - Improve your content and meta tags</li>
+            <li><strong>Content Analysis</strong> - Get insights on your content quality</li>
+            <li><strong>Competitor Insights</strong> - See how you compare to competitors</li>
+            <li><strong>White-Label Reports</strong> - Download professional PDF reports</li>
+            <li><strong>Unlimited Projects</strong> - Track multiple websites</li>
+            <li><strong>Priority Support</strong> - Get help when you need it</li>
+          </ul>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${dashboardUrl}" style="display: inline-block; background: #fbbf24; color: #1f2937; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Go to Dashboard
+            </a>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Need help getting started? Just reply to this email and we'll be happy to assist you!
+          </p>
+        </div>
+        <div style="background: #1f2937; padding: 20px; text-align: center; color: #9ca3af; border-radius: 0 0 8px 8px;">
+          <p style="margin: 0;">Best regards,<br><strong>SEOInForce Team</strong></p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Welcome email sent successfully:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    throw error;
+  }
+}
+
+// Project creation email
+export async function sendProjectCreatedEmail(email: string, name: string, projectName: string, domain: string) {
+  const appUrl = getAppUrl();
+  const dashboardUrl = `${appUrl}/audit/dashboard`;
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    to: email,
+    subject: `Project Created: ${projectName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #fbbf24; background: #1f2937; padding: 20px; margin: 0; text-align: center; border-radius: 8px 8px 0 0;">
+          ✅ Project Created Successfully
+        </h2>
+        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px;">
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Hi ${name || 'there'},
+          </p>
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Great news! Your project <strong>${projectName}</strong> for <strong>${domain}</strong> has been created successfully.
+          </p>
+          
+          <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #fbbf24;">
+            <p style="margin: 0; color: #374151;"><strong>Project Name:</strong> ${projectName}</p>
+            <p style="margin: 10px 0 0 0; color: #374151;"><strong>Domain:</strong> ${domain}</p>
+          </div>
+
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            You can now run SEO audits, track keywords, and monitor your website's performance.
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${dashboardUrl}" style="display: inline-block; background: #fbbf24; color: #1f2937; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Run Your First Audit
+            </a>
+          </div>
+        </div>
+        <div style="background: #1f2937; padding: 20px; text-align: center; color: #9ca3af; border-radius: 0 0 8px 8px;">
+          <p style="margin: 0;">Best regards,<br><strong>SEOInForce Team</strong></p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Project created email sent successfully:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending project created email:', error);
+    throw error;
+  }
+}
+
+// Audit completion email
+export async function sendAuditCompletedEmail(email: string, name: string, domain: string, overallScore: number) {
+  const appUrl = getAppUrl();
+  const dashboardUrl = `${appUrl}/audit/dashboard`;
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    to: email,
+    subject: `SEO Audit Complete: ${domain} - Score: ${overallScore}/100`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #fbbf24; background: #1f2937; padding: 20px; margin: 0; text-align: center; border-radius: 8px 8px 0 0;">
+          📊 SEO Audit Complete!
+        </h2>
+        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px;">
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Hi ${name || 'there'},
+          </p>
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Your SEO audit for <strong>${domain}</strong> has been completed!
+          </p>
+          
+          <div style="background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 30px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <div style="font-size: 48px; font-weight: bold; color: #92400e; margin-bottom: 10px;">${overallScore}</div>
+            <div style="font-size: 18px; color: #92400e; font-weight: bold;">Overall SEO Score</div>
+          </div>
+
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            View your detailed audit results, including technical SEO, on-page optimization, content analysis, and actionable recommendations.
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${dashboardUrl}" style="display: inline-block; background: #fbbf24; color: #1f2937; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              View Audit Results
+            </a>
+          </div>
+        </div>
+        <div style="background: #1f2937; padding: 20px; text-align: center; color: #9ca3af; border-radius: 0 0 8px 8px;">
+          <p style="margin: 0;">Best regards,<br><strong>SEOInForce Team</strong></p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Audit completed email sent successfully:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending audit completed email:', error);
+    throw error;
+  }
+}
+
+// Report download email
+export async function sendReportDownloadedEmail(email: string, name: string, domain: string) {
+  const appUrl = getAppUrl();
+  const dashboardUrl = `${appUrl}/audit/dashboard`;
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    to: email,
+    subject: `SEO Report Downloaded: ${domain}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #fbbf24; background: #1f2937; padding: 20px; margin: 0; text-align: center; border-radius: 8px 8px 0 0;">
+          📥 Report Downloaded
+        </h2>
+        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px;">
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Hi ${name || 'there'},
+          </p>
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Your white-label SEO report for <strong>${domain}</strong> has been downloaded successfully.
+          </p>
+          
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            The report includes comprehensive SEO analysis, actionable recommendations, and is ready to share with your team or clients.
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${dashboardUrl}" style="display: inline-block; background: #fbbf24; color: #1f2937; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              View More Audits
+            </a>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Need help implementing the recommendations? Our team is here to help!
+          </p>
+        </div>
+        <div style="background: #1f2937; padding: 20px; text-align: center; color: #9ca3af; border-radius: 0 0 8px 8px;">
+          <p style="margin: 0;">Best regards,<br><strong>SEOInForce Team</strong></p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Report downloaded email sent successfully:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending report downloaded email:', error);
+    throw error;
+  }
+}
+
+// Package purchase email
+export async function sendPackagePurchaseEmail(email: string, name: string, planType: string) {
+  const appUrl = getAppUrl();
+  const dashboardUrl = `${appUrl}/audit/dashboard`;
+
+  const planNames: Record<string, string> = {
+    starter: 'Starter Plan',
+    growth: 'Growth Plan',
+    empire: 'Empire Plan'
+  };
+
+  const planFeatures: Record<string, string[]> = {
+    starter: ['500 API Credits', '100 Keywords', 'Monthly Audits', 'Priority Support'],
+    growth: ['2,000 API Credits', '1,000 Keywords', 'Weekly Reports', 'Priority Support'],
+    empire: ['10,000 API Credits', 'Unlimited Keywords', 'Daily Reports', '24/7 Priority Support']
+  };
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    to: email,
+    subject: `Welcome to ${planNames[planType] || planType}! 🎉`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #fbbf24; background: #1f2937; padding: 20px; margin: 0; text-align: center; border-radius: 8px 8px 0 0;">
+          🎉 Thank You for Your Purchase!
+        </h2>
+        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px;">
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Hi ${name || 'there'},
+          </p>
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Thank you for upgrading to the <strong>${planNames[planType] || planType}</strong>! Your subscription is now active.
+          </p>
+          
+          <div style="background: linear-gradient(135deg, #dbeafe, #bfdbfe); padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+            <h3 style="color: #1e40af; margin-top: 0; margin-bottom: 15px;">Your Plan Includes:</h3>
+            <ul style="color: #1e40af; font-size: 15px; line-height: 1.8; padding-left: 20px; margin: 0;">
+              ${(planFeatures[planType] || []).map(feature => `<li>${feature}</li>`).join('')}
+            </ul>
+          </div>
+
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            You can now access all premium features and start optimizing your SEO performance!
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${dashboardUrl}" style="display: inline-block; background: #fbbf24; color: #1f2937; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              Go to Dashboard
+            </a>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Questions about your subscription? Just reply to this email and we'll help you out!
+          </p>
+        </div>
+        <div style="background: #1f2937; padding: 20px; text-align: center; color: #9ca3af; border-radius: 0 0 8px 8px;">
+          <p style="margin: 0;">Best regards,<br><strong>SEOInForce Team</strong></p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Package purchase email sent successfully:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending package purchase email:', error);
+    throw error;
+  }
+}
+
+// Audit expiration email (when credits run out)
+export async function sendAuditExpiredEmail(email: string, name: string) {
+  const appUrl = getAppUrl();
+  const pricingUrl = `${appUrl}#pricing`;
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    to: email,
+    subject: 'Upgrade Your Plan to Continue Running Audits',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #fbbf24; background: #1f2937; padding: 20px; margin: 0; text-align: center; border-radius: 8px 8px 0 0;">
+          ⚠️ Audit Credits Expired
+        </h2>
+        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px;">
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Hi ${name || 'there'},
+          </p>
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            You've used all your free audit credits. To continue running SEO audits and accessing all features, please upgrade your plan.
+          </p>
+          
+          <div style="background: linear-gradient(135deg, #fef3c7, #fde68a); padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+            <h3 style="color: #92400e; margin-top: 0; margin-bottom: 15px;">Upgrade Benefits:</h3>
+            <ul style="color: #92400e; font-size: 15px; line-height: 1.8; padding-left: 20px; margin: 0;">
+              <li>Unlimited SEO audits</li>
+              <li>Advanced analytics and reporting</li>
+              <li>Priority support</li>
+              <li>White-label reports</li>
+              <li>Competitor analysis</li>
+            </ul>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${pricingUrl}" style="display: inline-block; background: #fbbf24; color: #1f2937; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              View Pricing Plans
+            </a>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Need help choosing the right plan? Reply to this email and we'll help you find the perfect fit!
+          </p>
+        </div>
+        <div style="background: #1f2937; padding: 20px; text-align: center; color: #9ca3af; border-radius: 0 0 8px 8px;">
+          <p style="margin: 0;">Best regards,<br><strong>SEOInForce Team</strong></p>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Audit expired email sent successfully:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending audit expired email:', error);
     throw error;
   }
 }
