@@ -173,7 +173,10 @@ export async function GET(request: NextRequest) {
     const generator = new PDFReportGenerator();
     const pdfBuffer = await generator.generateReport(reportData);
 
-    return new NextResponse(pdfBuffer, {
+    // Convert Buffer to Uint8Array for NextResponse compatibility
+    const pdfArray = new Uint8Array(pdfBuffer);
+
+    return new NextResponse(pdfArray, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="seo-audit-${reportData.domain}.pdf"`,
