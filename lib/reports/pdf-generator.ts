@@ -269,7 +269,7 @@ export class PDFReportGenerator {
     if (data.content.keyword_density.length > 0) {
       doc.fontSize(14).text('Top Keywords:', { underline: true });
       doc.moveDown(0.5);
-      data.content.keyword_density.slice(0, 5).forEach((kw) => {
+      data.content.keyword_density.slice(0, 5).forEach((kw: { term: string; pct: number }) => {
         doc.fontSize(12).text(`${kw.term}: ${kw.pct}%`);
       });
     }
