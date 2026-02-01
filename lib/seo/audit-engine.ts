@@ -389,10 +389,10 @@ export class SEOAuditEngine {
     // Get headings text (more important for keywords)
     const headingsText = $('h1, h2, h3, h4, h5, h6').map((_: any, el: any) => $(el).text()).get().join(' ').toLowerCase();
     
-    const wordCount = bodyText.split(/\s+/).filter(w => w.length > 0).length;
+    const wordCount = bodyText.split(/\s+/).filter((w: string) => w.length > 0).length;
 
     // Simple readability calculation (Flesch-like)
-    const sentences = bodyText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const sentences = bodyText.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
     const avgWordsPerSentence = sentences.length > 0 ? wordCount / sentences.length : 0;
     const avgCharsPerWord = wordCount > 0 ? bodyText.length / wordCount : 0;
     const readability = Math.max(0, Math.min(100, 100 - (avgWordsPerSentence * 1.5) - (avgCharsPerWord * 0.5)));
