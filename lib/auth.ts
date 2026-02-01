@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createSupabaseServerClient } from './supabase/client';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -87,7 +87,7 @@ export async function getCurrentUser(request: NextRequest): Promise<User | null>
 }
 
 // Set auth cookie (used in API routes)
-export function setAuthCookie(token: string, response: Response) {
+export function setAuthCookie(token: string, response: NextResponse) {
   response.cookies.set('auth-token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
