@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSupabaseClient } from '@/lib/supabase/client';
+import { getCurrentUserClient, signOutClient } from '@/lib/auth/client';
 import { 
   Users, 
   FileText, 
@@ -32,7 +32,6 @@ type TabType = 'dashboard' | 'users' | 'audits' | 'api-usage' | 'errors';
 
 export default function AdminPanel() {
   const router = useRouter();
-  const supabase = createSupabaseClient();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -58,9 +57,9 @@ export default function AdminPanel() {
 
   const checkAdminAccess = async () => {
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const user = await getCurrentUserClient();
       
-      if (authError || !user) {
+      if (!user) {
         console.log('No user found, redirecting to admin login');
         // Wait a bit before redirecting to show loading state
         setTimeout(() => {
@@ -69,20 +68,23 @@ export default function AdminPanel() {
         return;
       }
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single();
+      // Fetch user data with is_admin from the API
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+      });
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        // Profile might not exist, try to create it or use defaults
-        setLoading(false);
+      if (!response.ok) {
+        console.log('Failed to fetch user data, redirecting to admin login');
+        setTimeout(() => {
+          router.push('/admin/login');
+        }, 100);
         return;
       }
 
-      if (!profile || !profile.is_admin) {
+      const data = await response.json();
+      const userData = data.user;
+
+      if (!userData || !userData.is_admin) {
         console.log('User is not an admin, redirecting to dashboard');
         // Wait a bit before redirecting
         setTimeout(() => {
@@ -253,8 +255,7 @@ export default function AdminPanel() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/sign-in');
+    await signOutClient();
   };
 
   if (loading) {
@@ -294,7 +295,7 @@ export default function AdminPanel() {
             <div className="text-xs text-[#C0C0C0] mt-4 p-3 bg-black/50 rounded">
               <p className="mb-2">To get admin access, run this SQL in Supabase:</p>
               <pre className="text-left text-xs overflow-x-auto p-2 bg-black rounded">
-{`UPDATE public.profiles 
+{`UPDATE public.users 
 SET is_admin = TRUE 
 WHERE email = 'your-email@example.com';`}
               </pre>
@@ -673,7 +674,7 @@ WHERE email = 'your-email@example.com';`}
                           <td className="px-4 py-3 font-semibold text-white">{audit.domain}</td>
                           <td className="px-4 py-3">
                             <div className="text-sm text-[#C0C0C0]">
-                              {audit.projects?.profiles?.email || 'N/A'}
+                              {audit.projects?.users?.email || 'N/A'}
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -811,9 +812,9 @@ WHERE email = 'your-email@example.com';`}
                         {log.endpoint && (
                           <div className="text-xs text-[#C0C0C0] mb-2">Endpoint: {log.endpoint}</div>
                         )}
-                        {log.profiles && (
+                        {log.users && (
                           <div className="text-xs text-[#C0C0C0] mb-2">
-                            User: {log.profiles.email}
+                            User: {log.users.email}
                           </div>
                         )}
                         <div className="text-xs text-[#C0C0C0]">

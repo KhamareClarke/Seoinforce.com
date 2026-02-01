@@ -1,42 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerComponentClient } from '@/lib/supabase/server';
-
-async function isAdmin(supabase: any, userId: string): Promise<boolean> {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', userId)
-    .single();
-  
-  return profile?.is_admin === true;
-}
+import { createSupabaseServerClient } from '@/lib/supabase/client';
+import { getCurrentUser } from '@/lib/auth';
 
 // GET - Get overall admin statistics
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!(await isAdmin(supabase, user.id))) {
+    if (!user.is_admin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
+    const supabase = createSupabaseServerClient();
+
     // Get user statistics
     const { count: totalUsers } = await supabase
-      .from('profiles')
+      .from('users')
       .select('*', { count: 'exact', head: true });
 
     const { count: bannedUsers } = await supabase
-      .from('profiles')
+      .from('users')
       .select('*', { count: 'exact', head: true })
       .eq('is_banned', true);
 
     const { data: subscriptionData } = await supabase
-      .from('profiles')
+      .from('users')
       .select('plan_type');
 
     const subscriptionCounts = {
@@ -79,7 +71,7 @@ export async function GET(request: NextRequest) {
 
     // Get recent subscriptions (users who upgraded in last 30 days)
     const { data: recentSubscriptions } = await supabase
-      .from('profiles')
+      .from('users')
       .select('id, email, full_name, plan_type, updated_at')
       .in('plan_type', ['starter', 'growth', 'empire'])
       .gte('updated_at', thirtyDaysAgo.toISOString())

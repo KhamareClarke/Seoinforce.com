@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { createSupabaseClient } from '@/lib/supabase/client';
 import { Shield, Mail, Lock, ArrowRight } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -13,7 +12,6 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createSupabaseClient();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,40 +25,53 @@ export default function AdminLoginPage() {
     }
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Sign in using custom auth API
+      const signInResponse = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
       });
 
-      if (signInError) {
-        setError(signInError.message || 'Invalid email or password');
+      if (!signInResponse.ok) {
+        const errorData = await signInResponse.json();
+        setError(errorData.error || 'Invalid email or password');
         setLoading(false);
         return;
       }
 
-      if (data.user) {
-        // Wait a moment for session to be fully established
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Check if user is admin
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', data.user.id)
-          .single();
+      // Wait a moment for session to be fully established
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Check if user is admin
+      const userResponse = await fetch('/api/auth/me', {
+        credentials: 'include',
+      });
 
-        if (profileError || !profile || !profile.is_admin) {
-          await supabase.auth.signOut();
-          setError('Access denied. Admin privileges required.');
-          setLoading(false);
-          return;
-        }
-
-        // Admin confirmed, redirect to admin dashboard
-        // Use window.location to ensure a full page reload and avoid any redirect loops
-        window.location.href = '/admin';
-        return; // Prevent any further execution
+      if (!userResponse.ok) {
+        setError('Failed to verify admin access');
+        setLoading(false);
+        return;
       }
+
+      const userData = await userResponse.json();
+      const user = userData.user;
+
+      if (!user || !user.is_admin) {
+        // Sign out the user
+        await fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include',
+        });
+        setError('Access denied. Admin privileges required.');
+        setLoading(false);
+        return;
+      }
+
+      // Admin confirmed, redirect to admin dashboard
+      // Use window.location to ensure a full page reload and avoid any redirect loops
+      window.location.href = '/admin';
+      return; // Prevent any further execution
     } catch (err) {
       console.error('Admin sign in error:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');

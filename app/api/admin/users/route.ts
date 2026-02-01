@@ -1,30 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerComponentClient } from '@/lib/supabase/server';
-
-// Helper function to check if user is admin
-async function isAdmin(supabase: any, userId: string): Promise<boolean> {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', userId)
-    .single();
-  
-  return profile?.is_admin === true;
-}
+import { createSupabaseServerClient } from '@/lib/supabase/client';
+import { getCurrentUser } from '@/lib/auth';
 
 // GET - List all users
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!(await isAdmin(supabase, user.id))) {
+    if (!user.is_admin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -33,7 +24,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
 
     let query = supabase
-      .from('profiles')
+      .from('users')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -75,16 +66,17 @@ export async function GET(request: NextRequest) {
 // PATCH - Update user (ban/unban, update credits, etc.)
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!(await isAdmin(supabase, user.id))) {
+    if (!user.is_admin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { userId, action, ...updates } = await request.json();
 
@@ -109,7 +101,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { data, error } = await supabase
-      .from('profiles')
+      .from('users')
       .update(updateData)
       .eq('id', userId)
       .select()

@@ -1,29 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerComponentClient } from '@/lib/supabase/server';
-
-async function isAdmin(supabase: any, userId: string): Promise<boolean> {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', userId)
-    .single();
-  
-  return profile?.is_admin === true;
-}
+import { createSupabaseServerClient } from '@/lib/supabase/client';
+import { getCurrentUser } from '@/lib/auth';
 
 // GET - List all audits
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!(await isAdmin(supabase, user.id))) {
+    if (!user.is_admin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -41,7 +33,7 @@ export async function GET(request: NextRequest) {
           domain,
           name,
           user_id,
-          profiles:user_id (
+          users:user_id (
             id,
             email,
             full_name
@@ -93,16 +85,17 @@ export async function GET(request: NextRequest) {
 // DELETE - Delete audit
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!(await isAdmin(supabase, user.id))) {
+    if (!user.is_admin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const auditId = searchParams.get('id');

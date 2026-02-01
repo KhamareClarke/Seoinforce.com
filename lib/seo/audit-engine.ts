@@ -54,6 +54,23 @@ export interface AuditResult {
     fix_suggestion: string;
     page_url?: string;
   }>;
+  backlinks?: {
+    total_count: number;
+    domain_count: number;
+    anchor_text: Array<{ text: string; count: number }>;
+    last_checked: Date;
+  };
+  local_seo?: {
+    business_name: string | null;
+    address: string | null;
+    phone: string | null;
+    gmb_present: boolean;
+    gmb_url: string | null;
+    review_count: number;
+    average_rating: number | null;
+    nap_consistency_score: number;
+    local_rank: number | null;
+  };
 }
 
 export class SEOAuditEngine {

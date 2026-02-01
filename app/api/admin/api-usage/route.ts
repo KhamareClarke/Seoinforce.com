@@ -1,29 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerComponentClient } from '@/lib/supabase/server';
-
-async function isAdmin(supabase: any, userId: string): Promise<boolean> {
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', userId)
-    .single();
-  
-  return profile?.is_admin === true;
-}
+import { createSupabaseServerClient } from '@/lib/supabase/client';
+import { getCurrentUser } from '@/lib/auth';
 
 // GET - Get API usage statistics
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!(await isAdmin(supabase, user.id))) {
+    if (!user.is_admin) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '30');
@@ -36,7 +28,7 @@ export async function GET(request: NextRequest) {
       .from('api_usage')
       .select(`
         *,
-        profiles:user_id (
+        users:user_id (
           id,
           email,
           full_name,
@@ -67,7 +59,7 @@ export async function GET(request: NextRequest) {
       const uid = u.user_id;
       if (!acc[uid]) {
         acc[uid] = {
-          user: u.profiles,
+          user: u.users,
           totalCredits: 0,
           count: 0,
         };
