@@ -186,8 +186,8 @@ export class KeywordTracker {
 
       // Filter out keywords with no rank or rank 0, sort by rank
       return keywordRankings
-        .filter(kw => kw.rank > 0)
-        .sort((a, b) => a.rank - b.rank)
+        .filter((kw: any) => kw.rank > 0)
+        .sort((a: any, b: any) => a.rank - b.rank)
         .slice(0, limit);
     } catch (error) {
       console.error(`Error getting competitor keywords for ${competitorDomain}:`, error);
@@ -216,7 +216,7 @@ export class KeywordTracker {
       // Extract text content
       const title = $('title').text() || '';
       const metaDescription = $('meta[name="description"]').attr('content') || '';
-      const headings = $('h1, h2, h3').map((_, el) => $(el).text()).get().join(' ');
+      const headings = $('h1, h2, h3').map((_: any, el: any) => $(el).text()).get().join(' ');
       const bodyText = $('body').text() || '';
       
       // Combine all text
@@ -255,19 +255,19 @@ export class KeywordTracker {
       ]);
 
       // Extract meaningful words (4+ characters, not stop words)
-      const words = allText
-        .match(/\b[a-z]{4,}\b/g) || []
-        .filter(word => !stopWords.has(word) && word.length >= 4);
+      const words = (allText
+        .match(/\b[a-z]{4,}\b/g) || [])
+        .filter((word: string) => !stopWords.has(word) && word.length >= 4);
 
       // Count word frequency
       const wordFreq: Record<string, number> = {};
-      words.forEach(word => {
+      words.forEach((word: string) => {
         wordFreq[word] = (wordFreq[word] || 0) + 1;
       });
 
       // Boost words that appear in headings
-      const headingWords = headings.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
-      headingWords.forEach(word => {
+      const headingWords = (headings.toLowerCase().match(/\b[a-z]{4,}\b/g) || []) as string[];
+      headingWords.forEach((word: string) => {
         if (!stopWords.has(word) && word.length >= 4) {
           wordFreq[word] = (wordFreq[word] || 0) + 2; // Double weight for heading words
         }
@@ -275,9 +275,9 @@ export class KeywordTracker {
 
       // Sort by frequency and return top keywords
       return Object.entries(wordFreq)
-        .sort((a, b) => b[1] - a[1])
+        .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
         .slice(0, limit)
-        .map(([keyword]) => keyword);
+        .map(([keyword]: [string, number]) => keyword);
     } catch (error) {
       console.error(`Error extracting keywords from ${domain}:`, error);
       // Fallback: return domain name as keyword

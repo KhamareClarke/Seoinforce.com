@@ -104,7 +104,7 @@ export class SEOAuditEngine {
         /please.*enable.*javascript.*to.*continue/i,
       ];
       
-      const blockingScore = botBlockPatterns.filter(pattern => pattern.test(html)).length;
+      const blockingScore = botBlockPatterns.filter((pattern: RegExp) => pattern.test(html)).length;
       // Only throw if we have strong evidence of blocking
       if (blockingScore >= 2 || html.includes('cf-browser-verification') || html.includes('challenge-platform')) {
         throw new Error('Site appears to be blocking automated access or requires authentication. Try a different website or ensure the site allows public access.');
@@ -146,7 +146,7 @@ export class SEOAuditEngine {
 
       // Generate issues
       const issues = this.generateIssues(technical, onpage, content);
-      console.log(`Generated ${issues.length} issues for audit:`, issues.map(i => i.title));
+      console.log(`Generated ${issues.length} issues for audit:`, issues.map((i: any) => i.title));
       console.log('On-page data:', {
         open_graph: onpage.open_graph,
         twitter_card: onpage.twitter_card,
@@ -435,13 +435,13 @@ export class SEOAuditEngine {
     const wordFreq: Record<string, number> = {};
     
     // Count words with weighting: headings are more important
-    words.forEach(word => {
+    words.forEach((word: string) => {
       wordFreq[word] = (wordFreq[word] || 0) + 1;
     });
     
     // Boost words that appear in headings
-    const headingWords = headingsText.match(/\b[a-z]{4,}\b/g) || [];
-    headingWords.forEach(word => {
+    const headingWords = (headingsText.match(/\b[a-z]{4,}\b/g) || []) as string[];
+    headingWords.forEach((word: string) => {
       if (!stopWords.has(word) && word.length >= 4) {
         wordFreq[word] = (wordFreq[word] || 0) + 2; // Double weight for heading words
       }
@@ -451,7 +451,7 @@ export class SEOAuditEngine {
     const keywordDensity = Object.entries(wordFreq)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 15) // Get top 15, then filter more aggressively
-      .filter(([term]) => {
+      .filter(([term]: [string, number]) => {
         // Filter out single characters, numbers, and common technical patterns
         // Also filter out common HTML/JS/React terms that might leak into content
         const isTechnical = term.match(/^(api|url|http|https|www|com|org|net|html|css|js|json|xml|meta|content|name|type|data|attr|value|class|id|div|span|body|head|script|style|link|href|src|alt|title|text|children|classname|child|parent|node|nodes|textcontent|innerhtml|outerhtml|append|prepend|remove|add|toggle|contains|matches|queryselector|getelement|createelement|addeventlistener|removeeventlistener)$/i);
@@ -463,7 +463,7 @@ export class SEOAuditEngine {
                !stopWords.has(term); // Double-check against stop words
       })
       .slice(0, 5) // Take top 5 after filtering
-      .map(([term, count]) => ({
+      .map(([term, count]: [string, number]) => ({
         term,
         pct: totalWords > 0 ? Number(((count / totalWords) * 100).toFixed(2)) : 0,
       }));
