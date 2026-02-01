@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerComponentClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase/client';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { auditId, lcp, fcp, tti } = await request.json();
 
@@ -26,7 +28,10 @@ export async function POST(request: NextRequest) {
       .eq('id', auditId)
       .single();
 
-    if (!audit || audit.projects.user_id !== user.id) {
+    // Handle array response from Supabase join
+    const project = Array.isArray(audit?.projects) ? audit.projects[0] : audit?.projects;
+
+    if (!audit || !project || project.user_id !== user.id) {
       return NextResponse.json({ error: 'Audit not found' }, { status: 404 });
     }
 
@@ -57,12 +62,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const auditId = searchParams.get('audit_id');
@@ -97,8 +103,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch vitals history' }, { status: 500 });
     }
 
-    // Filter by user ownership
-    const userHistory = history?.filter((h: any) => h.audits?.projects?.user_id === user.id) || [];
+    // Filter by user ownership - handle array response from Supabase join
+    const userHistory = history?.filter((h: any) => {
+      const projects = Array.isArray(h.audits?.projects) ? h.audits.projects : [h.audits?.projects].filter(Boolean);
+      return projects.some((p: any) => p?.user_id === user.id);
+    }) || [];
 
     return NextResponse.json({ history: userHistory });
   } catch (error) {
