@@ -5,7 +5,7 @@ let cheerioModule: any;
 const loadCheerio = async () => {
   if (!cheerioModule) {
     const mod = await import('cheerio');
-    cheerioModule = mod.default || mod;
+    cheerioModule = (mod as any).default || mod;
   }
   return cheerioModule;
 };
