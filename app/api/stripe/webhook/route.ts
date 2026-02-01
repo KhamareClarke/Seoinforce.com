@@ -3,9 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/client';
 import Stripe from 'stripe';
 import { sendPackagePurchaseEmail } from '@/lib/email';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
 

@@ -3,9 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/client';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
 const planPrices: Record<string, number> = {
   starter: 4900, // £49 in pence
