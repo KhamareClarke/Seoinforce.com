@@ -111,7 +111,10 @@ export async function POST(request: NextRequest) {
 
     // In production, upload PDF to storage (Supabase Storage, S3, etc.)
     // For now, return the PDF directly
-    return new NextResponse(pdfBuffer, {
+    // Convert Buffer to Uint8Array for NextResponse compatibility
+    const pdfArray = new Uint8Array(pdfBuffer);
+    
+    return new NextResponse(pdfArray, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="seo-audit-${audit.domain}-${Date.now()}.pdf"`,
