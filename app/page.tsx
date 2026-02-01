@@ -26,7 +26,7 @@ export default function HomePage() {
   const [formType, setFormType] = useState(null);
   const [userData, setUserData] = useState({ name: '', email: '', phone: '', domain: '' });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const chatEndRef = useRef(null);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   const testimonials = [
     { quote: 'Our traffic grew 212% in 6 months thanks to SEOInForce.', name: 'Jane Smith', company: 'TechCorp', face: '/client1-Photoroom.png', logo: '/client1-Photoroom.png' },
