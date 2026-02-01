@@ -98,7 +98,7 @@ export function setAuthCookie(token: string, response: NextResponse) {
 }
 
 // Clear auth cookie (used in API routes)
-export function clearAuthCookie(response: Response) {
+export function clearAuthCookie(response: NextResponse) {
   response.cookies.delete('auth-token');
 }
 
