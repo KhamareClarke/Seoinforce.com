@@ -309,7 +309,7 @@ export class SEOAuditEngine {
     let missingAlt = 0;
     let validAlt = 0;
 
-    images.each((_, el) => {
+    images.each((_: any, el: any) => {
       const alt = $(el).attr('alt');
       if (!alt || alt.trim() === '') {
         missingAlt++;
