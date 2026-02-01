@@ -3,9 +3,14 @@ import { createSupabaseServerClient } from '@/lib/supabase/client';
 import Stripe from 'stripe';
 import { sendPackagePurchaseEmail } from '@/lib/email';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+// Lazy initialization to avoid build-time errors
+function getStripe() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not configured');
+  }
+  return new Stripe(secretKey);
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -14,6 +19,13 @@ export async function POST(request: NextRequest) {
   if (!signature) {
     return NextResponse.json({ error: 'No signature' }, { status: 400 });
   }
+
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+  }
+
+  const stripe = getStripe();
 
   let event: Stripe.Event;
 

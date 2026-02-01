@@ -3,7 +3,14 @@ import { getCurrentUser } from '@/lib/auth';
 import { createSupabaseServerClient } from '@/lib/supabase/client';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+// Lazy initialization to avoid build-time errors
+function getStripe() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not configured');
+  }
+  return new Stripe(secretKey);
+}
 
 const planPrices: Record<string, number> = {
   starter: 4900, // £49 in pence
@@ -40,6 +47,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     let customerId = profile?.stripe_customer_id;
+
+    const stripe = getStripe();
 
     if (!customerId) {
       // Create Stripe customer
