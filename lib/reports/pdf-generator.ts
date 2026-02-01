@@ -278,7 +278,7 @@ export class PDFReportGenerator {
       doc.moveDown();
       doc.fontSize(14).text('Content Suggestions:', { underline: true });
       doc.moveDown(0.5);
-      data.content.suggestions.forEach((suggestion) => {
+      data.content.suggestions.forEach((suggestion: string) => {
         doc.fontSize(11).fillColor('#666666').text(`• ${suggestion}`);
         doc.fillColor('#000000');
         doc.moveDown(0.3);
