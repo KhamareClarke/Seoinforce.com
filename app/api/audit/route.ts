@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/client';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, User } from '@/lib/auth';
 import { SEOAuditEngine } from '@/lib/seo/audit-engine';
 import { BacklinkChecker } from '@/lib/seo/backlink-checker';
 import { LocalSEOChecker } from '@/lib/seo/local-seo';
@@ -8,8 +8,9 @@ import { logError } from '@/lib/utils/error-logger';
 import { sendAuditCompletedEmail, sendAuditExpiredEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
+  let user: User | null = null;
   try {
-    const user = await getCurrentUser(request);
+    user = await getCurrentUser(request);
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
