@@ -11,13 +11,12 @@ const transporter = nodemailer.createTransport({
 
 // Helper function to get app URL (no localhost in production emails)
 function getAppUrl(): string {
-  const url = process.env.NEXT_PUBLIC_APP_URL;
-  if (url && !url.includes('localhost')) {
-    return url;
+  const url = process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com';
+  // Always use production URL if the URL contains localhost
+  if (url.includes('localhost')) {
+    return 'https://seoinforce.com';
   }
-  // For production, use the environment variable or default to a production URL
-  // In development, this will still work but we'll avoid showing localhost in emails
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com';
+  return url;
 }
 
 export interface AuditEmailData {

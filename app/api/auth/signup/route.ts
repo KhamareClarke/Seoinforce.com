@@ -91,10 +91,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Send verification email
-    // Use getAppUrl helper to avoid showing localhost in emails
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')
-      ? process.env.NEXT_PUBLIC_APP_URL
-      : process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com';
+    // Always use production URL in emails (never localhost)
+    let appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com';
+    // If URL contains localhost, use production URL instead
+    if (appUrl.includes('localhost')) {
+      appUrl = 'https://seoinforce.com';
+    }
     const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
     const mailOptions = {
@@ -142,7 +144,12 @@ export async function POST(request: NextRequest) {
     // Note: This is a simple approach. For production, consider using a job queue like Bull, Agenda, etc.
     setTimeout(async () => {
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/emails/welcome`, {
+        // Use production URL for internal API calls (never localhost)
+        let apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com';
+        if (apiUrl.includes('localhost')) {
+          apiUrl = 'https://seoinforce.com';
+        }
+        await fetch(`${apiUrl}/api/emails/welcome`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: user.id }),
