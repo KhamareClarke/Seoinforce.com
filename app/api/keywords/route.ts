@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerComponentClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase/client';
+import { getCurrentUser } from '@/lib/auth';
 import { KeywordTracker } from '@/lib/seo/keyword-tracker';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { projectId, keyword, location = 'United Kingdom', deviceType = 'desktop' } = await request.json();
 
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Check keyword limit (free: 20, starter: 100, growth: 1000, empire: unlimited)
     const { data: profile } = await supabase
-      .from('profiles')
+      .from('users')
       .select('plan_type')
       .eq('id', user.id)
       .single();
@@ -116,12 +118,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
@@ -138,7 +141,8 @@ export async function GET(request: NextRequest) {
         .eq('id', keywordId)
         .single();
 
-      if (error || keyword.projects.user_id !== user.id) {
+      const project = Array.isArray(keyword?.projects) ? keyword.projects[0] : keyword?.projects;
+      if (error || project?.user_id !== user.id) {
         return NextResponse.json({ error: 'Keyword not found' }, { status: 404 });
       }
 
@@ -172,12 +176,13 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const keywordId = searchParams.get('id');
@@ -197,7 +202,8 @@ export async function PATCH(request: NextRequest) {
       .eq('id', keywordId)
       .single();
 
-    if (!existingKeyword || existingKeyword.projects.user_id !== user.id) {
+    const project = Array.isArray(existingKeyword?.projects) ? existingKeyword.projects[0] : existingKeyword?.projects;
+    if (!existingKeyword || project?.user_id !== user.id) {
       return NextResponse.json({ error: 'Keyword not found' }, { status: 404 });
     }
 
@@ -222,12 +228,13 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const keywordId = searchParams.get('id');
@@ -246,7 +253,8 @@ export async function DELETE(request: NextRequest) {
       .eq('id', keywordId)
       .single();
 
-    if (!keyword || keyword.projects.user_id !== user.id) {
+    const project = Array.isArray(keyword?.projects) ? keyword.projects[0] : keyword?.projects;
+    if (!keyword || project?.user_id !== user.id) {
       return NextResponse.json({ error: 'Keyword not found' }, { status: 404 });
     }
 

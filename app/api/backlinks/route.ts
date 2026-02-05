@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerComponentClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase/client';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
@@ -17,13 +19,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
     }
 
+    // Verify project ownership
+    const { data: project } = await supabase
+      .from('projects')
+      .select('user_id')
+      .eq('id', projectId)
+      .single();
+
+    if (!project || project.user_id !== user.id) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
     // Get backlinks for the project
     const { data: backlinks, error } = await supabase
       .from('backlinks')
-      .select(`
-        *,
-        projects!inner(user_id)
-      `)
+      .select('*')
       .eq('project_id', projectId)
       .single();
 

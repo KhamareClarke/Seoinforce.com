@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerComponentClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase/client';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
@@ -30,8 +32,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch competitors' }, { status: 500 });
     }
 
-    // Filter by user ownership
-    const userCompetitors = competitors?.filter((c: any) => c.projects?.user_id === user.id) || [];
+    // Filter by user ownership (handle array or single object)
+    const userCompetitors = competitors?.filter((c: any) => {
+      const project = Array.isArray(c.projects) ? c.projects[0] : c.projects;
+      return project?.user_id === user.id;
+    }) || [];
 
     return NextResponse.json({ competitors: userCompetitors });
   } catch (error) {
@@ -42,12 +47,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { projectId, domain, name } = await request.json();
 
@@ -89,12 +95,13 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const competitorId = searchParams.get('id');
@@ -114,7 +121,8 @@ export async function PATCH(request: NextRequest) {
       .eq('id', competitorId)
       .single();
 
-    if (!existingCompetitor || existingCompetitor.projects.user_id !== user.id) {
+    const project = Array.isArray(existingCompetitor?.projects) ? existingCompetitor.projects[0] : existingCompetitor?.projects;
+    if (!existingCompetitor || project?.user_id !== user.id) {
       return NextResponse.json({ error: 'Competitor not found' }, { status: 404 });
     }
 
@@ -142,12 +150,13 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);
     const competitorId = searchParams.get('id');
@@ -166,7 +175,8 @@ export async function DELETE(request: NextRequest) {
       .eq('id', competitorId)
       .single();
 
-    if (!competitor || competitor.projects.user_id !== user.id) {
+    const project = Array.isArray(competitor?.projects) ? competitor.projects[0] : competitor?.projects;
+    if (!competitor || project?.user_id !== user.id) {
       return NextResponse.json({ error: 'Competitor not found' }, { status: 404 });
     }
 

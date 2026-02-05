@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerComponentClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase/client';
+import { getCurrentUser } from '@/lib/auth';
 import { KeywordTracker } from '@/lib/seo/keyword-tracker';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const user = await getCurrentUser(request);
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = createSupabaseServerClient();
 
     const { projectId } = await request.json();
 
@@ -31,7 +33,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify ownership
-    if (keywords[0].projects.user_id !== user.id) {
+    const firstProject = Array.isArray(keywords[0]?.projects) ? keywords[0].projects[0] : keywords[0]?.projects;
+    if (!firstProject || firstProject.user_id !== user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -42,9 +45,10 @@ export async function POST(request: NextRequest) {
     // Update rankings for each keyword
     for (const keyword of keywords) {
       try {
+        const project = Array.isArray(keyword.projects) ? keyword.projects[0] : keyword.projects;
         const ranking = await tracker.getRanking(
           keyword.keyword,
-          keyword.projects.domain,
+          project?.domain || '',
           keyword.location
         );
 
