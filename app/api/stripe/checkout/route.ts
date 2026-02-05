@@ -16,6 +16,7 @@ const planPrices: Record<string, number> = {
   starter: 4900, // £49 in pence
   growth: 24900, // £249 in pence
   empire: 49900, // £499 in pence
+  brand: 9900, // £99 in pence
 };
 
 export async function POST(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const { planType } = await request.json();
 
-    if (!planType || !['starter', 'growth', 'empire'].includes(planType)) {
+    if (!planType || !['starter', 'growth', 'empire', 'brand'].includes(planType)) {
       return NextResponse.json({ error: 'Invalid plan type' }, { status: 400 });
     }
 

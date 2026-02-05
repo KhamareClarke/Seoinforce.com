@@ -72,16 +72,20 @@ export class PDFReportGenerator {
   }
 
   private addCoverPage(doc: any, data: ReportData) {
-    // Header
+    // Header - Show brand name at the top if available
     if (data.whiteLabel?.companyName) {
-      doc.fontSize(24).text(data.whiteLabel.companyName, { align: 'center' });
-      doc.moveDown();
+      doc.fontSize(28)
+        .fillColor('#000000')
+        .text(data.whiteLabel.companyName, { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(14)
+        .fillColor('#666666')
+        .text('SEO Audit Report', { align: 'center' });
     } else {
       doc.fontSize(24).text('SEOInForce', { align: 'center' });
       doc.moveDown();
+      doc.fontSize(18).text('SEO Audit Report', { align: 'center' });
     }
-
-    doc.fontSize(18).text('SEO Audit Report', { align: 'center' });
     doc.moveDown(2);
 
     // Domain

@@ -43,8 +43,20 @@ export async function POST(request: NextRequest) {
     const results = [];
 
     // Update rankings for each keyword
+    let quotaExhausted = false;
+    
     for (const keyword of keywords) {
       try {
+        // If quota is exhausted, skip remaining keywords
+        if (quotaExhausted) {
+          results.push({
+            keyword_id: keyword.id,
+            keyword: keyword.keyword,
+            error: 'API quota exhausted - skipped',
+          });
+          continue;
+        }
+
         const project = Array.isArray(keyword.projects) ? keyword.projects[0] : keyword.projects;
         const ranking = await tracker.getRanking(
           keyword.keyword,
@@ -61,26 +73,30 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (existing) {
-          // Update existing
-          await supabase
-            .from('keyword_rankings')
-            .update({
-              rank: ranking.rank,
-              url: ranking.url,
-              title: ranking.title,
-            })
-            .eq('id', existing.id);
+          // Update existing (only if we got a valid ranking)
+          if (ranking.rank !== null) {
+            await supabase
+              .from('keyword_rankings')
+              .update({
+                rank: ranking.rank,
+                url: ranking.url,
+                title: ranking.title,
+              })
+              .eq('id', existing.id);
+          }
         } else {
-          // Create new
-          await supabase
-            .from('keyword_rankings')
-            .insert({
-              keyword_id: keyword.id,
-              rank: ranking.rank,
-              url: ranking.url,
-              title: ranking.title,
-              date: today,
-            });
+          // Create new (only if we got a valid ranking)
+          if (ranking.rank !== null) {
+            await supabase
+              .from('keyword_rankings')
+              .insert({
+                keyword_id: keyword.id,
+                rank: ranking.rank,
+                url: ranking.url,
+                title: ranking.title,
+                date: today,
+              });
+          }
         }
 
         results.push({
@@ -89,12 +105,24 @@ export async function POST(request: NextRequest) {
           ranking: ranking.rank,
         });
       } catch (error) {
-        console.error(`Error updating ranking for keyword ${keyword.keyword}:`, error);
-        results.push({
-          keyword_id: keyword.id,
-          keyword: keyword.keyword,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Error updating ranking for keyword ${keyword.keyword}:`, errorMessage);
+        
+        // Check if it's a quota exhaustion error
+        if (errorMessage === 'SERPAPI_QUOTA_EXHAUSTED' || errorMessage.includes('quota') || errorMessage.includes('run out of searches')) {
+          quotaExhausted = true;
+          results.push({
+            keyword_id: keyword.id,
+            keyword: keyword.keyword,
+            error: 'API quota exhausted. Remaining keywords were not updated.',
+          });
+        } else {
+          results.push({
+            keyword_id: keyword.id,
+            keyword: keyword.keyword,
+            error: errorMessage,
+          });
+        }
       }
     }
 

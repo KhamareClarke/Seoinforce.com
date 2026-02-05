@@ -1,4 +1,4 @@
-import { createSupabaseServerComponentClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient } from '@/lib/supabase/client';
 
 export interface ErrorLogData {
   errorType: string;
@@ -12,19 +12,14 @@ export interface ErrorLogData {
 
 export async function logError(data: ErrorLogData) {
   try {
-    const supabase = await createSupabaseServerComponentClient();
+    const supabase = createSupabaseServerClient();
     
-    // Try to get current user if not provided
-    let userId = data.userId;
-    if (!userId) {
-      const { data: { user } } = await supabase.auth.getUser();
-      userId = user?.id;
-    }
-
+    // userId must be provided explicitly since we're using custom auth
+    // If not provided, log without user_id
     const { error } = await supabase
       .from('error_logs')
       .insert({
-        user_id: userId || null,
+        user_id: data.userId || null,
         error_type: data.errorType,
         error_message: data.errorMessage,
         error_stack: data.errorStack || null,

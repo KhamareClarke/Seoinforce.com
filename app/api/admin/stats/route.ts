@@ -36,6 +36,17 @@ export async function GET(request: NextRequest) {
       starter: subscriptionData?.filter(p => p.plan_type === 'starter').length || 0,
       growth: subscriptionData?.filter(p => p.plan_type === 'growth').length || 0,
       empire: subscriptionData?.filter(p => p.plan_type === 'empire').length || 0,
+      brand: subscriptionData?.filter(p => p.plan_type === 'brand').length || 0,
+    };
+
+    // Get account type statistics
+    const { data: accountTypeData } = await supabase
+      .from('users')
+      .select('account_type');
+
+    const accountTypeCounts = {
+      personal: accountTypeData?.filter(u => u.account_type === 'personal' || !u.account_type).length || 0,
+      brand: accountTypeData?.filter(u => u.account_type === 'brand').length || 0,
     };
 
     // Get audit statistics
@@ -72,8 +83,8 @@ export async function GET(request: NextRequest) {
     // Get recent subscriptions (users who upgraded in last 30 days)
     const { data: recentSubscriptions } = await supabase
       .from('users')
-      .select('id, email, full_name, plan_type, updated_at')
-      .in('plan_type', ['starter', 'growth', 'empire'])
+      .select('id, email, full_name, plan_type, account_type, brand_name, updated_at')
+      .in('plan_type', ['starter', 'growth', 'empire', 'brand'])
       .gte('updated_at', thirtyDaysAgo.toISOString())
       .order('updated_at', { ascending: false })
       .limit(10);
@@ -84,6 +95,7 @@ export async function GET(request: NextRequest) {
         banned: bannedUsers || 0,
         active: (totalUsers || 0) - (bannedUsers || 0),
         subscriptionCounts,
+        accountTypeCounts,
       },
       audits: {
         total: totalAudits || 0,

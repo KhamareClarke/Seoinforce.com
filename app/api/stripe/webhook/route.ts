@@ -54,7 +54,18 @@ export async function POST(request: NextRequest) {
             apiCredits = 2000;
           } else if (planType === 'empire') {
             apiCredits = 10000;
+          } else if (planType === 'brand') {
+            apiCredits = 1000; // Brand plan gets 1000 credits
           }
+
+          // Update both users and profiles tables
+          await supabase
+            .from('users')
+            .update({
+              plan_type: planType,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId);
 
           await supabase
             .from('profiles')
@@ -105,6 +116,14 @@ export async function POST(request: NextRequest) {
         if (profile) {
           if (event.type === 'customer.subscription.deleted') {
             // Downgrade to free plan
+            await supabase
+              .from('users')
+              .update({
+                plan_type: 'free',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', profile.id);
+
             await supabase
               .from('profiles')
               .update({

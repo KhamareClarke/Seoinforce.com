@@ -61,7 +61,14 @@ export class KeywordTracker {
       }
     } catch (error) {
       console.error('Keyword ranking error:', error);
-      throw new Error(`Failed to get ranking: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Check if it's a quota exhaustion error
+      if (errorMessage === 'SERPAPI_QUOTA_EXHAUSTED' || errorMessage.includes('quota') || errorMessage.includes('run out of searches')) {
+        throw new Error('SERPAPI_QUOTA_EXHAUSTED');
+      }
+      
+      throw new Error(`Failed to get ranking: ${errorMessage}`);
     }
 
     throw new Error('No API key configured');
@@ -106,41 +113,78 @@ export class KeywordTracker {
   }
 
   private async getRankingSerpAPI(keyword: string, domain: string, location: string): Promise<KeywordRanking> {
-    const response = await axios.get('https://serpapi.com/search', {
-      params: {
-        api_key: process.env.SERPAPI_KEY,
-        q: keyword,
-        location: location,
-        num: 100,
-      },
-      timeout: 30000,
-    });
+    try {
+      const response = await axios.get('https://serpapi.com/search', {
+        params: {
+          api_key: process.env.SERPAPI_KEY,
+          q: keyword,
+          location: location,
+          num: 100,
+        },
+        timeout: 30000,
+      });
 
-    const results = response.data.organic_results || [];
-    const domainLower = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
-
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      const resultUrl = result.link?.toLowerCase() || '';
-      
-      if (resultUrl.includes(domainLower)) {
-        return {
-          keyword,
-          rank: i + 1,
-          url: result.link,
-          title: result.title,
-          date: new Date(),
-        };
+      // Check if response has error data
+      if (response.data?.error) {
+        const errorMessage = response.data.error;
+        if (errorMessage.includes('run out of searches') || errorMessage.includes('quota')) {
+          throw new Error('SERPAPI_QUOTA_EXHAUSTED');
+        }
+        throw new Error(`SERPAPI Error: ${errorMessage}`);
       }
-    }
 
-    return {
-      keyword,
-      rank: null,
-      url: null,
-      title: null,
-      date: new Date(),
-    };
+      const results = response.data.organic_results || [];
+      const domainLower = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const resultUrl = result.link?.toLowerCase() || '';
+        
+        if (resultUrl.includes(domainLower)) {
+          return {
+            keyword,
+            rank: i + 1,
+            url: result.link,
+            title: result.title,
+            date: new Date(),
+          };
+        }
+      }
+
+      return {
+        keyword,
+        rank: null,
+        url: null,
+        title: null,
+        date: new Date(),
+      };
+    } catch (error: any) {
+      // Handle axios errors
+      if (error.response) {
+        const status = error.response.status;
+        const errorData = error.response.data;
+        
+        if (status === 429) {
+          throw new Error('SERPAPI_QUOTA_EXHAUSTED');
+        }
+        
+        if (errorData?.error) {
+          if (errorData.error.includes('run out of searches') || errorData.error.includes('quota')) {
+            throw new Error('SERPAPI_QUOTA_EXHAUSTED');
+          }
+          throw new Error(`SERPAPI Error: ${errorData.error}`);
+        }
+        
+        throw new Error(`SERPAPI request failed with status ${status}`);
+      }
+      
+      // Re-throw if it's already our custom error
+      if (error.message === 'SERPAPI_QUOTA_EXHAUSTED') {
+        throw error;
+      }
+      
+      throw new Error(`Failed to get ranking: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async getCompetitorKeywords(competitorDomain: string, limit: number = 50): Promise<Array<{

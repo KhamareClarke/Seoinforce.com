@@ -21,6 +21,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Audit ID is required' }, { status: 400 });
     }
 
+    // Get user's brand information
+    const { data: userData } = await supabase
+      .from('users')
+      .select('account_type, brand_name')
+      .eq('id', user.id)
+      .single();
+
     // Get audit data
     const { data: audit, error: auditError } = await supabase
       .from('audits')
@@ -61,6 +68,10 @@ export async function POST(request: NextRequest) {
       }));
     }
 
+    // Include brand name in whiteLabel if user is a brand account
+    const brandName = userData?.account_type === 'brand' && userData?.brand_name ? userData.brand_name : null;
+    const whiteLabelData = whiteLabel || (brandName ? { companyName: brandName } : undefined);
+
     const reportData = {
       domain: audit.domain,
       overall_score: audit.overall_score || 0,
@@ -71,7 +82,7 @@ export async function POST(request: NextRequest) {
       onpage: audit.raw_data?.onpage || {},
       content: audit.raw_data?.content || {},
       issues: issues,
-      whiteLabel: whiteLabel || undefined,
+      whiteLabel: whiteLabelData,
     };
 
     // Generate PDF

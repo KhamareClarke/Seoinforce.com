@@ -8,9 +8,13 @@ interface PricingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubscribe: (planType: string) => void;
+  userProfile?: {
+    account_type?: 'personal' | 'brand';
+    brand_name?: string | null;
+  } | null;
 }
 
-const plans = [
+const personalPlans = [
   {
     name: 'Starter',
     price: '£49',
@@ -37,7 +41,18 @@ const plans = [
   },
 ];
 
-export default function PricingModal({ isOpen, onClose, onSubscribe }: PricingModalProps) {
+const brandPlan = {
+  name: 'Brand',
+  price: '£99',
+  desc: 'For Brands & Businesses',
+  features: 'Unlimited audits with brand name on reports',
+  planType: 'brand',
+  featured: true,
+};
+
+export default function PricingModal({ isOpen, onClose, onSubscribe, userProfile }: PricingModalProps) {
+  const isBrandAccount = userProfile?.account_type === 'brand';
+  const plans = isBrandAccount ? [brandPlan] : personalPlans;
   const [loading, setLoading] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -92,7 +107,7 @@ export default function PricingModal({ isOpen, onClose, onSubscribe }: PricingMo
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className={`grid gap-6 mb-8 ${isBrandAccount ? 'md:grid-cols-1 max-w-md mx-auto' : 'md:grid-cols-3'}`}>
             {plans.map((plan) => (
               <div
                 key={plan.planType}

@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { SEOAuditEngine } from '@/lib/seo/audit-engine';
 import { BacklinkChecker } from '@/lib/seo/backlink-checker';
 import { LocalSEOChecker } from '@/lib/seo/local-seo';
+import { logError } from '@/lib/utils/error-logger';
 import { sendAuditCompletedEmail, sendAuditExpiredEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
@@ -29,14 +30,16 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    // Get user's audit count
+    // Get user's audit count and account type
     let { data: userData, error: userError } = await supabase
       .from('users')
-      .select('audit_count')
+      .select('audit_count, account_type, brand_name')
       .eq('id', user.id)
       .single();
 
     let auditCount = userData?.audit_count || 0;
+    const accountType = userData?.account_type || 'personal';
+    const brandName = userData?.brand_name || null;
     
     // If audit_count column doesn't exist, default to 0
     if (userError && userError.message?.includes('column') && userError.message?.includes('does not exist')) {
@@ -99,8 +102,12 @@ export async function POST(request: NextRequest) {
     }
 
     // For free plan: Allow 2 free audits, then require payment
+    // For brand accounts on free plan: Allow 2 free audits, then require brand plan
     // IMPORTANT: Check BEFORE incrementing to prevent race conditions
-    if (profile.plan_type === 'free' && auditCount >= 2) {
+    const isBrandAccount = accountType === 'brand';
+    const isFreePlan = profile.plan_type === 'free';
+    
+    if (isFreePlan && auditCount >= 2) {
       // Send audit expiration email
       try {
         await sendAuditExpiredEmail(
@@ -112,10 +119,15 @@ export async function POST(request: NextRequest) {
         // Don't fail the request if email fails
       }
 
+      const errorMessage = isBrandAccount
+        ? 'You have reached your free audit limit. Please upgrade to the Brand plan to continue.'
+        : 'You have reached your free audit limit. Please upgrade to continue.';
+
       return NextResponse.json(
         { 
-          error: 'You have reached your free audit limit. Please upgrade to continue.',
+          error: errorMessage,
           requiresPayment: true,
+          requiresBrandPlan: isBrandAccount,
           auditCount: auditCount
         },
         { status: 403 }
@@ -124,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     // Increment audit count BEFORE running audit to prevent race conditions
     // This ensures that if multiple requests come in, only the allowed number will pass
-    if (profile.plan_type === 'free') {
+    if (isFreePlan) {
       // First, ensure the audit_count column exists by trying to add it if needed
       // Then increment the count
       const { error: incrementError } = await supabase
@@ -156,7 +168,7 @@ export async function POST(request: NextRequest) {
       auditCount = auditCount + 1;
     }
 
-    // For paid plans: Check API credits
+    // For paid plans (including brand plan): Check API credits
     if (profile.plan_type !== 'free' && profile.api_credits < 1) {
       // Send audit expiration email
       try {
@@ -473,15 +485,31 @@ export async function POST(request: NextRequest) {
           .eq('id', user.id);
       }
 
-      // Log API usage
-      await supabase
-        .from('api_usage')
-        .insert({
-          user_id: user.id,
-          api_type: 'audit',
-          endpoint: '/api/audit',
-          credits_used: 1,
-        });
+      // Log API usage (non-blocking - don't fail audit if logging fails)
+      try {
+        // Verify user exists in users table before logging
+        const { data: userCheck } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', user.id)
+          .single();
+
+        if (userCheck) {
+          await supabase
+            .from('api_usage')
+            .insert({
+              user_id: user.id,
+              api_type: 'audit',
+              endpoint: '/api/audit',
+              credits_used: 1,
+            });
+        } else {
+          console.warn(`User ${user.id} not found in users table, skipping API usage log`);
+        }
+      } catch (usageError) {
+        console.error('Failed to log API usage (non-blocking):', usageError);
+        // Don't fail the audit if API usage logging fails
+      }
 
       return NextResponse.json({
         audit_id: audit.id,
@@ -496,6 +524,17 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', audit.id);
 
+      // Log error
+      await logError({
+        errorType: 'audit_execution_error',
+        errorMessage: error instanceof Error ? error.message : 'Audit execution failed',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        endpoint: '/api/audit',
+        requestData: { domain, projectId },
+        severity: 'error',
+        userId: user.id,
+      });
+
       return NextResponse.json(
         { error: error instanceof Error ? error.message : 'Audit failed' },
         { status: 500 }
@@ -503,6 +542,19 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Audit API error:', error);
+    
+    // Log error
+    if (user) {
+      await logError({
+        errorType: 'audit_api_error',
+        errorMessage: error instanceof Error ? error.message : 'Internal server error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        endpoint: '/api/audit',
+        severity: 'critical',
+        userId: user.id,
+      });
+    }
+    
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, fullName } = body;
+    const { email, password, fullName, accountType, brandName, brandWebsite } = body;
 
     // Validation
     if (!email || !email.includes('@')) {
@@ -58,6 +58,14 @@ export async function POST(request: NextRequest) {
     const verificationTokenExpires = new Date();
     verificationTokenExpires.setHours(verificationTokenExpires.getHours() + 24); // 24 hours
 
+    // Validate brand account
+    if (accountType === 'brand' && !brandName) {
+      return NextResponse.json(
+        { error: 'Brand name is required for brand accounts' },
+        { status: 400 }
+      );
+    }
+
     // Create user
     const { data: user, error: userError } = await supabase
       .from('users')
@@ -65,10 +73,13 @@ export async function POST(request: NextRequest) {
         email: email.toLowerCase(),
         password_hash: passwordHash,
         full_name: fullName || email.split('@')[0],
+        account_type: accountType || 'personal',
+        brand_name: accountType === 'brand' ? brandName : null,
+        brand_website: accountType === 'brand' ? brandWebsite || null : null,
         verification_token: verificationToken,
         verification_token_expires: verificationTokenExpires.toISOString(),
       })
-      .select('id, email, full_name')
+      .select('id, email, full_name, account_type, brand_name')
       .single();
 
     if (userError || !user) {

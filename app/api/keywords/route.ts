@@ -88,24 +88,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create keyword' }, { status: 500 });
     }
 
-    // Get initial ranking
-    const tracker = new KeywordTracker();
-    const ranking = await tracker.getRanking(keyword, project.domain, location);
+    // Get initial ranking (allow keyword creation even if ranking fails)
+    let ranking = null;
+    let rankingError = null;
+    
+    try {
+      const tracker = new KeywordTracker();
+      ranking = await tracker.getRanking(keyword, project.domain, location);
 
-    // Save ranking
-    await supabase
-      .from('keyword_rankings')
-      .insert({
-        keyword_id: keywordRecord.id,
-        rank: ranking.rank,
-        url: ranking.url,
-        title: ranking.title,
-        date: new Date().toISOString().split('T')[0],
-      });
+      // Save ranking if we got one
+      if (ranking && ranking.rank !== null) {
+        await supabase
+          .from('keyword_rankings')
+          .insert({
+            keyword_id: keywordRecord.id,
+            rank: ranking.rank,
+            url: ranking.url,
+            title: ranking.title,
+            date: new Date().toISOString().split('T')[0],
+          });
+      }
+    } catch (error: any) {
+      console.error('Error getting initial ranking:', error);
+      rankingError = error instanceof Error ? error.message : 'Unknown error';
+      
+      // If it's a quota exhaustion error, provide a helpful message
+      if (rankingError === 'SERPAPI_QUOTA_EXHAUSTED' || rankingError.includes('quota') || rankingError.includes('run out of searches')) {
+        rankingError = 'API quota exhausted. Keyword has been added but ranking will be updated when quota is available.';
+      }
+      
+      // Still return success - keyword was created, just ranking failed
+      // The ranking can be updated later via the update-ranks endpoint
+    }
 
     return NextResponse.json({
       keyword: keywordRecord,
       initial_ranking: ranking,
+      ranking_warning: rankingError || undefined,
     });
   } catch (error) {
     console.error('Keyword API error:', error);

@@ -451,15 +451,24 @@ export default function AuditDashboard() {
         });
       }
 
-      // Load audit_count from users table (not from counting audits)
+      // Load audit_count, account_type, and brand_name from users table
       const { data: userData } = await supabase
         .from('users')
-        .select('audit_count')
+        .select('audit_count, account_type, brand_name, brand_website')
         .eq('id', user.id)
         .single();
       
       if (userData) {
         setAuditCount(userData.audit_count || 0);
+        // Update userProfile with brand information
+        if (userData.account_type || userData.brand_name) {
+          setUserProfile((prev: any) => ({
+            ...prev,
+            account_type: userData.account_type || 'personal',
+            brand_name: userData.brand_name || null,
+            brand_website: userData.brand_website || null,
+          }));
+        }
       }
 
       const response = await fetch('/api/projects');
@@ -1276,6 +1285,12 @@ export default function AuditDashboard() {
           <div className="flex flex-col w-full sm:w-auto">
             <div className="text-base sm:text-lg font-bold hero-gradient-text">SEO Task Force Command Center</div>
             <div className="flex items-center gap-2 sm:gap-4 text-xs text-[#C0C0C0] mt-1 flex-wrap">
+              {userProfile?.account_type === 'brand' && userProfile?.brand_name && (
+                <div className="flex items-center gap-1">
+                  <Shield className="h-3 w-3 text-yellow-400" />
+                  <span className="truncate max-w-[120px] sm:max-w-none font-semibold text-yellow-400">{userProfile.brand_name}</span>
+                </div>
+              )}
               <div className="flex items-center gap-1">
                 <User className="h-3 w-3" />
                 <span className="truncate max-w-[120px] sm:max-w-none">{userProfile?.full_name || 'User'}</span>
@@ -1295,6 +1310,7 @@ export default function AuditDashboard() {
                   userProfile.plan_type === 'empire' ? 'bg-purple-500/20 text-purple-400' :
                   userProfile.plan_type === 'growth' ? 'bg-yellow-400/20 text-yellow-400' :
                   userProfile.plan_type === 'starter' ? 'bg-blue-500/20 text-blue-400' :
+                  userProfile.plan_type === 'brand' ? 'bg-yellow-400/20 text-yellow-400' :
                   'bg-gray-500/20 text-gray-400'
                 }`}>
                   {userProfile.plan_type.charAt(0).toUpperCase() + userProfile.plan_type.slice(1)} Plan
@@ -2917,6 +2933,7 @@ export default function AuditDashboard() {
         <PricingModal
           isOpen={showPricingModal}
           onClose={() => setShowPricingModal(false)}
+          userProfile={userProfile}
           onSubscribe={handleSubscribe}
         />
       </div>

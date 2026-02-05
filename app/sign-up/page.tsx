@@ -5,13 +5,16 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowRight, Mail, Lock, User } from 'lucide-react';
+import { ArrowRight, Mail, Lock, User, Globe } from 'lucide-react';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [accountType, setAccountType] = useState<'personal' | 'brand'>('personal');
+  const [brandName, setBrandName] = useState('');
+  const [brandWebsite, setBrandWebsite] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -52,6 +55,9 @@ export default function SignUpPage() {
           email,
           password,
           fullName: fullName || undefined,
+          accountType,
+          brandName: accountType === 'brand' ? brandName : undefined,
+          brandWebsite: accountType === 'brand' ? brandWebsite : undefined,
         }),
       });
 
@@ -104,8 +110,42 @@ export default function SignUpPage() {
             )}
 
             <div>
+              <label htmlFor="accountType" className="block text-sm font-semibold text-[#FFD700] mb-2">
+                Account Type <span className="text-red-400">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountType('personal');
+                    setBrandName('');
+                    setBrandWebsite('');
+                  }}
+                  className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                    accountType === 'personal'
+                      ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400'
+                      : 'bg-black/50 border-yellow-400/30 text-[#C0C0C0] hover:border-yellow-400/50'
+                  }`}
+                >
+                  Personal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountType('brand')}
+                  className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                    accountType === 'brand'
+                      ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400'
+                      : 'bg-black/50 border-yellow-400/30 text-[#C0C0C0] hover:border-yellow-400/50'
+                  }`}
+                >
+                  Brand
+                </button>
+              </div>
+            </div>
+
+            <div>
               <label htmlFor="fullName" className="block text-sm font-semibold text-[#FFD700] mb-2">
-                Full Name (Optional)
+                {accountType === 'brand' ? 'Your Name (Optional)' : 'Full Name (Optional)'}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-yellow-400/60" />
@@ -114,11 +154,49 @@ export default function SignUpPage() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="John Doe"
+                  placeholder={accountType === 'brand' ? 'Your Name' : 'John Doe'}
                   className="pl-10 bg-black/50 border-yellow-400/30 text-white placeholder:text-[#C0C0C0] focus:border-yellow-400"
                 />
               </div>
             </div>
+
+            {accountType === 'brand' && (
+              <>
+                <div>
+                  <label htmlFor="brandName" className="block text-sm font-semibold text-[#FFD700] mb-2">
+                    Brand Name <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-yellow-400/60" />
+                    <Input
+                      id="brandName"
+                      type="text"
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      placeholder="My Brand"
+                      required
+                      className="pl-10 bg-black/50 border-yellow-400/30 text-white placeholder:text-[#C0C0C0] focus:border-yellow-400"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="brandWebsite" className="block text-sm font-semibold text-[#FFD700] mb-2">
+                    Brand Website (Optional)
+                  </label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-yellow-400/60" />
+                    <Input
+                      id="brandWebsite"
+                      type="url"
+                      value={brandWebsite}
+                      onChange={(e) => setBrandWebsite(e.target.value)}
+                      placeholder="https://mybrand.com"
+                      className="pl-10 bg-black/50 border-yellow-400/30 text-white placeholder:text-[#C0C0C0] focus:border-yellow-400"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-[#FFD700] mb-2">
@@ -179,7 +257,7 @@ export default function SignUpPage() {
 
             <Button
               type="submit"
-              disabled={loading || !email || !password || password !== confirmPassword}
+              disabled={loading || !email || !password || password !== confirmPassword || (accountType === 'brand' && !brandName)}
               className="w-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black font-extrabold py-4 sm:py-6 text-base sm:text-lg rounded-xl shadow-[0_15px_40px_-10px_rgba(250,204,21,0.4)] hover:shadow-[0_20px_50px_-12px_rgba(250,204,21,0.6)] hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating Account...' : 'Create Account'}

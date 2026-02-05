@@ -125,7 +125,18 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('Error updating error log:', error);
+      console.error('Update data:', updateData);
+      console.error('Log ID:', logId);
+      return NextResponse.json({ 
+        error: error.message,
+        details: error.details || error.hint || 'No additional details',
+        code: error.code
+      }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: 'Error log not found' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, log: data });

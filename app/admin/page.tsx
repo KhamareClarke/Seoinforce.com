@@ -225,11 +225,18 @@ export default function AdminPanel() {
         }),
       });
 
-      if (response.ok) {
-        loadData();
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Reload data to show updated status
+        await loadData();
+      } else {
+        console.error('Failed to resolve error:', data);
+        alert(`Failed to update error log: ${data.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error updating error log:', error);
+      alert('Error updating error log status. Please check the console for details.');
     }
   };
 
@@ -470,7 +477,26 @@ WHERE email = 'your-email@example.com';`}
                     <div className="text-2xl font-bold text-yellow-400">{stats.users?.subscriptionCounts?.empire || 0}</div>
                     <div className="text-sm text-[#C0C0C0]">Empire (£499/mo)</div>
                   </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-yellow-400">{stats.users?.subscriptionCounts?.brand || 0}</div>
+                    <div className="text-sm text-[#C0C0C0]">Brand (£99/mo)</div>
+                  </div>
                 </div>
+                {stats.users?.accountTypeCounts && (
+                  <div className="mt-6 pt-6 border-t border-yellow-400/20">
+                    <h4 className="text-sm font-semibold text-yellow-400 mb-3">Account Types</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-[#C0C0C0]">{stats.users.accountTypeCounts.personal || 0}</div>
+                        <div className="text-xs text-[#C0C0C0]">Personal</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-yellow-400">{stats.users.accountTypeCounts.brand || 0}</div>
+                        <div className="text-xs text-[#C0C0C0]">Brand</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Recent Subscriptions */}
@@ -539,17 +565,31 @@ WHERE email = 'your-email@example.com';`}
                             <div>
                               <div className="font-semibold text-white">{user.full_name || 'No name'}</div>
                               <div className="text-sm text-[#C0C0C0]">{user.email}</div>
+                              {user.account_type === 'brand' && user.brand_name && (
+                                <div className="text-xs text-yellow-400 mt-1 flex items-center gap-1">
+                                  <Shield className="h-3 w-3" />
+                                  Brand: {user.brand_name}
+                                </div>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              user.plan_type === 'empire' ? 'bg-purple-500/20 text-purple-400' :
-                              user.plan_type === 'growth' ? 'bg-yellow-400/20 text-yellow-400' :
-                              user.plan_type === 'starter' ? 'bg-blue-500/20 text-blue-400' :
-                              'bg-gray-500/20 text-gray-400'
-                            }`}>
-                              {user.plan_type?.toUpperCase() || 'FREE'}
-                            </span>
+                            <div className="flex flex-col gap-1">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                user.plan_type === 'empire' ? 'bg-purple-500/20 text-purple-400' :
+                                user.plan_type === 'growth' ? 'bg-yellow-400/20 text-yellow-400' :
+                                user.plan_type === 'starter' ? 'bg-blue-500/20 text-blue-400' :
+                                user.plan_type === 'brand' ? 'bg-yellow-400/20 text-yellow-400' :
+                                'bg-gray-500/20 text-gray-400'
+                              }`}>
+                                {user.plan_type?.toUpperCase() || 'FREE'}
+                              </span>
+                              {user.account_type === 'brand' && (
+                                <span className="px-2 py-0.5 rounded text-xs font-semibold bg-yellow-400/10 text-yellow-400/80">
+                                  BRAND ACCOUNT
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             {editingUser === user.id ? (
@@ -773,10 +813,32 @@ WHERE email = 'your-email@example.com';`}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold hero-gradient-text">Error Logs</h2>
-                <Button onClick={loadData} variant="outline" className="border-yellow-400/50 text-yellow-400">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/admin/test-error-log', { method: 'POST' });
+                        if (response.ok) {
+                          alert('Test error log created! Refresh to see it.');
+                          loadData();
+                        } else {
+                          alert('Failed to create test error log');
+                        }
+                      } catch (error) {
+                        console.error('Error creating test log:', error);
+                        alert('Failed to create test error log');
+                      }
+                    }}
+                    variant="outline" 
+                    className="border-blue-400/50 text-blue-400"
+                  >
+                    Create Test Log
+                  </Button>
+                  <Button onClick={loadData} variant="outline" className="border-yellow-400/50 text-yellow-400">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -854,6 +916,36 @@ WHERE email = 'your-email@example.com';`}
                     )}
                   </div>
                 ))}
+                {errorLogs.length === 0 && (
+                  <div className="text-center py-12">
+                    <AlertTriangle className="h-12 w-12 text-[#C0C0C0] mx-auto mb-4 opacity-50" />
+                    <p className="text-[#C0C0C0] text-lg mb-2">No error logs found</p>
+                    <p className="text-[#C0C0C0] text-sm mb-4">
+                      Error logs will appear here when errors occur in the system.
+                    </p>
+                    <Button 
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/admin/test-error-log', { method: 'POST' });
+                          if (response.ok) {
+                            alert('Test error log created! Refresh to see it.');
+                            loadData();
+                          } else {
+                            const data = await response.json();
+                            alert(`Failed to create test error log: ${data.error || 'Unknown error'}`);
+                          }
+                        } catch (error) {
+                          console.error('Error creating test log:', error);
+                          alert('Failed to create test error log');
+                        }
+                      }}
+                      variant="outline" 
+                      className="border-blue-400/50 text-blue-400"
+                    >
+                      Create Test Error Log
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}
