@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/client';
 import Stripe from 'stripe';
 import { sendPackagePurchaseEmail } from '@/lib/email';
+import { AGENCY_PACKAGES } from '@/lib/agency-packages';
 
 // Lazy initialization to avoid build-time errors
 function getStripe() {
@@ -44,6 +45,26 @@ export async function POST(request: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
         const planType = session.metadata?.planType;
+        const agencyUserId = session.metadata?.agency_user_id;
+        const agencyPlan = session.metadata?.plan;
+        const context = session.metadata?.context;
+
+        // Agency subscription: update agency_settings
+        if (context === 'agency_subscription' && agencyUserId && agencyPlan && ['starter', 'growth', 'empire'].includes(agencyPlan)) {
+          const pkg = AGENCY_PACKAGES[agencyPlan as keyof typeof AGENCY_PACKAGES];
+          await supabase
+            .from('agency_settings')
+            .update({
+              package_tier: agencyPlan,
+              audits_limit: pkg.auditsLimit,
+              clients_limit: pkg.clientsLimit,
+              stripe_subscription_id: session.subscription as string,
+              subscription_status: 'active',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('agency_user_id', agencyUserId);
+          console.log(`Agency ${agencyUserId} subscribed to ${agencyPlan}`);
+        }
 
         if (userId && planType) {
           // Update user's plan
@@ -105,8 +126,40 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        
-        // Find user by subscription ID
+
+        // Agency: update subscription_status (or clear on deleted)
+        const { data: agencyRow } = await supabase
+          .from('agency_settings')
+          .select('agency_user_id')
+          .eq('stripe_subscription_id', subscription.id)
+          .single();
+
+        if (agencyRow) {
+          if (event.type === 'customer.subscription.deleted') {
+            await supabase
+              .from('agency_settings')
+              .update({
+                stripe_subscription_id: null,
+                subscription_status: 'canceled',
+                package_tier: 'starter',
+                audits_limit: AGENCY_PACKAGES.starter.auditsLimit,
+                clients_limit: AGENCY_PACKAGES.starter.clientsLimit,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('agency_user_id', agencyRow.agency_user_id);
+          } else {
+            const status = subscription.status as string;
+            await supabase
+              .from('agency_settings')
+              .update({
+                subscription_status: status === 'active' || status === 'trialing' ? status : (status || null),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('agency_user_id', agencyRow.agency_user_id);
+          }
+        }
+
+        // User (profiles) subscription
         const { data: profile } = await supabase
           .from('profiles')
           .select('id')
@@ -115,7 +168,6 @@ export async function POST(request: NextRequest) {
 
         if (profile) {
           if (event.type === 'customer.subscription.deleted') {
-            // Downgrade to free plan
             await supabase
               .from('users')
               .update({

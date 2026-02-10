@@ -1,7 +1,9 @@
 'use client';
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Shield, Search, Download, Award, ChevronRight, FileText, LucideLink, Wrench, CheckCircle, AlertTriangle, XCircle, User, Sparkles, MessageCircle, LogOut, Loader2, Plus, Edit2, Trash2, Mail, Globe } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import { slugify } from "@/lib/slug";
+import { Shield, Search, Download, Award, ChevronRight, FileText, LucideLink, Wrench, CheckCircle, AlertTriangle, XCircle, User, Sparkles, MessageCircle, LogOut, Loader2, Plus, Edit2, Trash2, Mail, Globe, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createSupabaseClient } from "@/lib/supabase/client";
@@ -329,6 +331,7 @@ function RadarChart({ mySite, competitor }: { mySite: any; competitor: any }) {
 
 export default function AuditDashboard() {
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createSupabaseClient();
   
   const [domain, setDomain] = useState("");
@@ -364,6 +367,9 @@ export default function AuditDashboard() {
   const [auditCount, setAuditCount] = useState(0);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [showAuditHistory, setShowAuditHistory] = useState(false);
+  const [agencyTheme, setAgencyTheme] = useState<{ logo_url: string | null; primary_color: string; secondary_color: string } | null>(null);
+  const [agencyName, setAgencyName] = useState<string | null>(null);
+  const [agencyPackageTier, setAgencyPackageTier] = useState<string | null>(null);
 
   useEffect(() => {
     setAudit(null);
@@ -379,16 +385,32 @@ export default function AuditDashboard() {
   }, [projects.length]);
 
   useEffect(() => {
+    if (pathname === '/audit/dashboard' && userProfile?.account_type === 'brand' && userProfile?.brand_name) {
+      router.replace(`/audit/${slugify(userProfile.brand_name)}/dashboard`);
+    }
+  }, [pathname, userProfile?.account_type, userProfile?.brand_name, router]);
+
+  useEffect(() => {
+    if (agencyName && userProfile?.agency_id) {
+      document.title = `${agencyName} – Client Dashboard`;
+      return () => { document.title = 'SEOInForce'; };
+    }
+  }, [agencyName, userProfile?.agency_id]);
+
+  useEffect(() => {
     if (projects.length === 0 && !loading) {
       const checkProjects = async () => {
         const user = await getCurrentUserClient();
-        if (user) {
-          const response = await fetch('/api/projects');
-          if (response.ok) {
-            const data = await response.json();
-            if (!data.projects || data.projects.length === 0) {
-              router.push('/create-project');
-            }
+        if (!user) return;
+        const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+        if (!meRes.ok) return;
+        const meData = await meRes.json();
+        if (meData.user?.agency_id) return;
+        const response = await fetch('/api/projects');
+        if (response.ok) {
+          const data = await response.json();
+          if (!data.projects || data.projects.length === 0) {
+            router.push('/create-project');
           }
         }
       };
@@ -451,23 +473,73 @@ export default function AuditDashboard() {
         });
       }
 
-      // Load audit_count, account_type, and brand_name from users table
+      // Load audit_count, account_type, brand_name, agency_id from users table
       const { data: userData } = await supabase
         .from('users')
-        .select('audit_count, account_type, brand_name, brand_website')
+        .select('audit_count, account_type, brand_name, brand_website, agency_id')
         .eq('id', user.id)
         .single();
       
       if (userData) {
         setAuditCount(userData.audit_count || 0);
-        // Update userProfile with brand information
-        if (userData.account_type || userData.brand_name) {
+        // Update userProfile with brand information and agency_id (client of an agency)
+        if (userData.account_type || userData.brand_name || userData.agency_id) {
           setUserProfile((prev: any) => ({
             ...prev,
             account_type: userData.account_type || 'personal',
             brand_name: userData.brand_name || null,
             brand_website: userData.brand_website || null,
+            agency_id: userData.agency_id || null,
           }));
+        }
+      }
+
+      // If user is an agency client, load agency theme (logo, colors) and agency name
+      const uid = user as { id: string; agency_id?: string | null };
+      if (uid.agency_id) {
+        try {
+          const themeRes = await fetch('/api/agency/settings', { credentials: 'include' });
+          if (themeRes.ok) {
+            const themeData = await themeRes.json();
+            if (themeData.theme) {
+              setAgencyTheme({
+                logo_url: themeData.theme.logo_url || null,
+                primary_color: themeData.theme.primary_color || '#facc15',
+                secondary_color: themeData.theme.secondary_color || '#eab308',
+              });
+            }
+            if (themeData.agency_name) {
+              setAgencyName(themeData.agency_name);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load agency theme', e);
+        }
+      }
+
+      // If user is the agency (brand) itself, load their own theme, name, and package so their audit dashboard is branded
+      if (userData?.account_type === 'brand') {
+        try {
+          const themeRes = await fetch('/api/agency/settings', { credentials: 'include' });
+          if (themeRes.ok) {
+            const themeData = await themeRes.json();
+            if (themeData.settings) {
+              const s = themeData.settings;
+              setAgencyTheme({
+                logo_url: s.logo_url || null,
+                primary_color: s.primary_color || '#facc15',
+                secondary_color: s.secondary_color || '#eab308',
+              });
+              if (s.package_tier) {
+                setAgencyPackageTier(s.package_tier);
+              }
+            }
+            if (userData.brand_name) {
+              setAgencyName(userData.brand_name);
+            }
+          }
+        } catch (e) {
+          console.error('Failed to load agency theme', e);
         }
       }
 
@@ -1231,17 +1303,27 @@ export default function AuditDashboard() {
   };
   
   const issues = getIssues();
+  const isClient = !!userProfile?.agency_id;
+  const accentPrimary = agencyTheme?.primary_color || '#facc15';
+  const accentSecondary = agencyTheme?.secondary_color || '#eab308';
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-r from-[#101010] via-[#181818] to-[#232323]">
-      <aside className="hidden md:flex flex-col w-64 bg-gradient-to-b from-black via-[#181818] to-[#232323] border-r border-yellow-400/20 py-8 px-6 shadow-2xl z-20 h-screen">
+    <div
+      className={`flex min-h-screen bg-gradient-to-r from-[#101010] via-[#181818] to-[#232323] ${agencyTheme ? 'agency-theme' : ''}`}
+      style={agencyTheme ? ({ '--agency-primary': accentPrimary, '--agency-secondary': accentSecondary } as React.CSSProperties) : undefined}
+    >
+      <aside className="hidden md:flex flex-col w-64 bg-gradient-to-b from-black via-[#181818] to-[#232323] border-r py-8 px-6 shadow-2xl z-20 h-screen agency-sidebar-border">
         <div className="flex items-center gap-3 mb-10">
-          <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-yellow-400 overflow-hidden">
-            <img src="/logo.svg" alt="Logo" className="h-8 w-8 rounded-full object-cover" />
+          <div className="inline-flex items-center justify-center h-10 w-10 rounded-full overflow-hidden" style={{ backgroundColor: accentPrimary }}>
+            {agencyTheme?.logo_url ? (
+              <img src={agencyTheme.logo_url} alt="Logo" className="h-8 w-8 rounded-full object-cover" />
+            ) : (
+              <img src="/logo.svg" alt="Logo" className="h-8 w-8 rounded-full object-cover" />
+            )}
           </div>
-          <span className="text-2xl font-extrabold hero-gradient-text tracking-tight">SEOInForce</span>
+          <span className="text-2xl font-extrabold tracking-tight agency-gradient-text">{agencyName || 'SEOInForce'}</span>
         </div>
-        <nav className="mt-10 flex flex-col gap-4 text-[#FFD700] font-semibold text-lg">
+        <nav className="mt-10 flex flex-col gap-4 font-semibold text-lg agency-nav-text">
           <button 
             onClick={() => setShowAuditHistory(false)}
             className={`text-left hover:text-white transition ${!showAuditHistory ? 'text-white' : ''}`}
@@ -1258,7 +1340,7 @@ export default function AuditDashboard() {
             <FileText className="h-4 w-4" />
             Audit History
           </button>
-          {!showAuditHistory && (
+          {!showAuditHistory && audit && (
             <>
               <a href="#technical" className="hover:text-white transition">Technical SEO</a>
               <a href="#onpage" className="hover:text-white transition">On-Page</a>
@@ -1268,7 +1350,19 @@ export default function AuditDashboard() {
             </>
           )}
         </nav>
-        <div className="mt-auto pt-8 border-t border-yellow-400/20">
+        <div className="mt-auto pt-8 border-t border-yellow-400/20 space-y-2">
+          {userProfile?.account_type === 'brand' && !userProfile?.agency_id && (
+            <Link href="/agency/dashboard" className="block">
+              <Button
+                variant="outline"
+                className="w-full border-yellow-400/50 text-yellow-400 hover:bg-yellow-400/10 transition flex items-center gap-2 agency-nav-text"
+                style={agencyTheme ? { borderColor: accentPrimary + '80', color: accentPrimary } : undefined}
+              >
+                <Palette className="h-4 w-4" />
+                Branding
+              </Button>
+            </Link>
+          )}
           <Button
             onClick={handleSignOut}
             variant="outline"
@@ -1281,10 +1375,15 @@ export default function AuditDashboard() {
       </aside>
 
       <div className="flex-1 flex flex-col min-h-screen">
-        <header className="sticky top-0 z-30 bg-gradient-to-r from-black/80 via-[#181818]/80 to-[#232323]/80 backdrop-blur-md border-b border-yellow-400/10 px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 shadow-lg">
+        <header className="sticky top-0 z-30 bg-gradient-to-r from-black/80 via-[#181818]/80 to-[#232323]/80 backdrop-blur-md border-b agency-border border-yellow-400/10 px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 shadow-lg">
           <div className="flex flex-col w-full sm:w-auto">
-            <div className="text-base sm:text-lg font-bold hero-gradient-text">SEO Task Force Command Center</div>
+            <div className={`text-base sm:text-lg font-bold ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>{agencyName ? (userProfile?.agency_id ? `${agencyName} – Client Dashboard` : `${agencyName} – Dashboard`) : 'SEO Task Force Command Center'}</div>
             <div className="flex items-center gap-2 sm:gap-4 text-xs text-[#C0C0C0] mt-1 flex-wrap">
+              {userProfile?.agency_id && (
+                <div className={`px-2 py-0.5 rounded text-xs font-medium ${agencyTheme ? 'agency-badge' : 'bg-yellow-400/20 text-yellow-400'}`}>
+                  Client dashboard
+                </div>
+              )}
               {userProfile?.account_type === 'brand' && userProfile?.brand_name && (
                 <div className="flex items-center gap-1">
                   <Shield className="h-3 w-3 text-yellow-400" />
@@ -1305,15 +1404,17 @@ export default function AuditDashboard() {
                   <span className="truncate max-w-[100px] sm:max-w-none">{currentProject.name || currentProject.domain}</span>
                 </div>
               )}
-              {userProfile?.plan_type && (
+              {!userProfile?.agency_id && (userProfile?.plan_type || (userProfile?.account_type === 'brand' && agencyPackageTier)) && (
                 <div className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                  userProfile.plan_type === 'empire' ? 'bg-purple-500/20 text-purple-400' :
-                  userProfile.plan_type === 'growth' ? 'bg-yellow-400/20 text-yellow-400' :
-                  userProfile.plan_type === 'starter' ? 'bg-blue-500/20 text-blue-400' :
-                  userProfile.plan_type === 'brand' ? 'bg-yellow-400/20 text-yellow-400' :
+                  (agencyPackageTier || userProfile?.plan_type) === 'empire' ? 'bg-purple-500/20 text-purple-400' :
+                  (agencyPackageTier || userProfile?.plan_type) === 'growth' ? 'bg-yellow-400/20 text-yellow-400' :
+                  (agencyPackageTier || userProfile?.plan_type) === 'starter' ? 'bg-blue-500/20 text-blue-400' :
+                  (agencyPackageTier || userProfile?.plan_type) === 'brand' ? 'bg-yellow-400/20 text-yellow-400' :
                   'bg-gray-500/20 text-gray-400'
                 }`}>
-                  {userProfile.plan_type.charAt(0).toUpperCase() + userProfile.plan_type.slice(1)} Plan
+                  {(agencyPackageTier && userProfile?.account_type === 'brand')
+                    ? `${agencyPackageTier.charAt(0).toUpperCase() + agencyPackageTier.slice(1)} Plan`
+                    : `${(userProfile?.plan_type || 'free').charAt(0).toUpperCase() + (userProfile?.plan_type || 'free').slice(1)} Plan`}
                 </div>
               )}
             </div>
@@ -1321,7 +1422,8 @@ export default function AuditDashboard() {
           <div className="flex gap-2 sm:gap-3 items-center w-full sm:w-auto flex-wrap">
             {audit && (
               <Button 
-                className="bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold px-3 sm:px-6 py-2 rounded-lg shadow hover:bg-yellow-500 transition text-sm sm:text-base flex-1 sm:flex-initial" 
+                className={agencyTheme ? 'agency-accent-btn' : 'bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold px-3 sm:px-6 py-2 rounded-lg shadow hover:opacity-90 transition text-sm sm:text-base flex-1 sm:flex-initial'}
+                style={agencyTheme ? { backgroundColor: accentPrimary, color: '#000' } : undefined}
                 onClick={() => setShowLeadModal(true)}
               >
                 <Download className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" /> 
@@ -1329,11 +1431,29 @@ export default function AuditDashboard() {
                 <span className="sm:hidden">PDF</span>
               </Button>
             )}
-            <Button className="bg-gradient-to-r from-[#C0C0C0] via-[#FFD700] to-yellow-400 text-black font-bold px-3 sm:px-6 py-2 rounded-lg shadow hover:bg-yellow-500 transition text-sm sm:text-base flex-1 sm:flex-initial" onClick={() => setShowBookModal(true)}>
+            {userProfile?.account_type !== 'brand' && !userProfile?.agency_id && (
+            <Button
+              className={agencyTheme ? 'agency-accent-btn' : 'bg-gradient-to-r from-[#C0C0C0] via-[#FFD700] to-yellow-400 text-black font-bold px-3 sm:px-6 py-2 rounded-lg shadow hover:bg-yellow-500 transition text-sm sm:text-base flex-1 sm:flex-initial'}
+              style={agencyTheme ? { backgroundColor: accentPrimary, color: '#000' } : undefined}
+              onClick={() => setShowBookModal(true)}
+            >
               <Shield className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" /> 
               <span className="hidden sm:inline">Book Strategy Call</span>
               <span className="sm:hidden">Book Call</span>
             </Button>
+            )}
+            {userProfile?.account_type === 'brand' && !userProfile?.agency_id && (
+              <Link href="/agency/dashboard">
+                <Button
+                  variant="outline"
+                  className="border-yellow-400/50 text-yellow-400 hover:bg-yellow-400/10 px-3 sm:px-4 py-2 rounded-lg transition flex items-center gap-2 text-sm sm:text-base"
+                  style={agencyTheme ? { borderColor: accentPrimary + '80', color: accentPrimary } : undefined}
+                >
+                  <Palette className="h-4 w-4" />
+                  <span className="hidden sm:inline">Branding</span>
+                </Button>
+              </Link>
+            )}
             <Button
               onClick={handleSignOut}
               variant="outline"
@@ -1347,21 +1467,22 @@ export default function AuditDashboard() {
 
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 flex flex-col gap-10">
           {showAuditHistory ? (
-            <section className="w-full py-6 rounded-3xl bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 border-yellow-400/30 shadow-2xl backdrop-blur-xl">
+            <section className={`w-full py-6 rounded-3xl bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 shadow-2xl backdrop-blur-xl ${agencyTheme ? 'agency-border' : 'border-yellow-400/30'}`} style={agencyTheme ? { borderColor: accentPrimary + '50' } : undefined}>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 px-4 sm:px-6 gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 sm:p-3 rounded-xl bg-yellow-400/20 border border-yellow-400/30">
-                    <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-400" />
+                  <div className={`p-2 sm:p-3 rounded-xl border ${agencyTheme ? 'agency-bg-subtle agency-border' : 'bg-yellow-400/20 border-yellow-400/30'}`} style={agencyTheme ? { borderColor: accentPrimary + '50' } : undefined}>
+                    <FileText className={`h-5 w-5 sm:h-6 sm:w-6 ${agencyTheme ? 'agency-text' : 'text-yellow-400'}`} style={agencyTheme ? { color: accentPrimary } : undefined} />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-bold hero-gradient-text">Audit History</h2>
+                    <h2 className={`text-xl sm:text-2xl font-bold ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>Audit History</h2>
                     <p className="text-xs sm:text-sm text-[#C0C0C0] mt-1">{audits.length} audit{audits.length !== 1 ? 's' : ''} completed</p>
                   </div>
                 </div>
                 <Button
                   onClick={() => setShowAuditHistory(false)}
                   variant="outline"
-                  className="border-yellow-400/50 text-yellow-400 hover:bg-yellow-400/10 text-sm sm:text-base w-full sm:w-auto"
+                  className={agencyTheme ? 'agency-border text-sm sm:text-base w-full sm:w-auto hover:opacity-80' : 'border-yellow-400/50 text-yellow-400 hover:bg-yellow-400/10 text-sm sm:text-base w-full sm:w-auto'}
+                  style={agencyTheme ? { borderColor: accentPrimary, color: accentPrimary } : undefined}
                 >
                   <ChevronRight className="h-4 w-4 mr-2 rotate-180" />
                   Back to Dashboard
@@ -1454,8 +1575,14 @@ export default function AuditDashboard() {
             </section>
           ) : (
             <>
+              {isClient && projects.length === 0 && (
+                <section className="max-w-xl mx-auto px-4 py-6 text-center">
+                  <p className="text-[#C0C0C0] text-sm sm:text-base mb-2">Your agency manages your projects and audits.</p>
+                  <p className="text-[#C0C0C0] text-sm mb-6">You can run an instant audit below. Contact your agency for more access.</p>
+                </section>
+              )}
               <section className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-10 text-center fade-in-up">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold hero-gradient-text mb-3">See SEOInForce in action – instant audits, real results.</h1>
+                <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>{agencyName ? `Welcome to ${agencyName} – instant audits, real results.` : 'See SEOInForce in action – instant audits, real results.'}</h1>
                 <p className="text-[#C0C0C0] text-base sm:text-lg mb-6 px-4">Enter your domain and get a free instant SEO audit report in under 60 seconds.</p>
                 <form className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-2 px-4 sm:px-0" onSubmit={handleRunAudit}>
                   {error && (
@@ -1467,13 +1594,15 @@ export default function AuditDashboard() {
                     value={domain}
                     onChange={e => setDomain(e.target.value)}
                     placeholder="Enter your domain (e.g. example.com)"
-                    className="w-full sm:flex-1 bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border border-yellow-400/30 text-white px-4 sm:px-5 py-3 sm:py-4 rounded-2xl text-base sm:text-lg shadow"
+                    className={`w-full sm:flex-1 bg-gradient-to-b from-[#181818] via-[#232323] to-[#e5e5e5]/10 border text-white px-4 sm:px-5 py-3 sm:py-4 rounded-2xl text-base sm:text-lg shadow ${agencyTheme ? 'agency-border' : 'border-yellow-400/30'}`}
+                    style={agencyTheme ? { borderColor: accentPrimary + '50' } : undefined}
                     disabled={loading}
                   />
                   <Button 
                     type="submit" 
                     disabled={loading}
-                    className="w-full sm:w-auto bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-2xl shadow-lg text-base sm:text-lg hover:bg-yellow-500 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                    className={agencyTheme ? 'w-full sm:w-auto font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-2xl shadow-lg text-base sm:text-lg transition flex items-center justify-center gap-2 disabled:opacity-50' : 'w-full sm:w-auto bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-2xl shadow-lg text-base sm:text-lg hover:bg-yellow-500 transition flex items-center justify-center gap-2 disabled:opacity-50'}
+                    style={agencyTheme ? { backgroundColor: accentPrimary, color: '#000' } : undefined}
                   >
                     {loading ? (
                       <>
@@ -1486,12 +1615,12 @@ export default function AuditDashboard() {
                     )}
                   </Button>
                 </form>
-                <div className="text-xs text-[#FFD700] font-semibold mb-4">Instant SEO Audit in under 60 seconds. No credit card required.</div>
+                <div className="text-xs font-semibold mb-4" style={agencyTheme ? { color: accentPrimary } : { color: '#FFD700' }}>Instant SEO Audit in under 60 seconds. No credit card required.</div>
               </section>
 
               {loading && (
                 <div className="text-center py-12">
-                  <Loader2 className="h-12 w-12 animate-spin text-yellow-400 mx-auto mb-4" />
+                  <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" style={{ color: accentPrimary }} />
                   <p className="text-[#C0C0C0]">Running SEO audit... This may take up to 60 seconds.</p>
                 </div>
               )}
@@ -1502,11 +1631,11 @@ export default function AuditDashboard() {
                     <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 via-[#FFD700]/5 to-transparent rounded-3xl blur-3xl"></div>
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,215,0,0.1),transparent_70%)]"></div>
                     
-                    <div className="relative bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 rounded-3xl border-2 border-yellow-400/40 shadow-2xl backdrop-blur-xl p-8 md:p-12">
-                      <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b border-yellow-400/20">
+                    <div className={`relative bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 rounded-3xl border-2 shadow-2xl backdrop-blur-xl p-8 md:p-12 ${agencyTheme ? 'agency-border' : 'border-yellow-400/40'}`} style={agencyTheme ? { borderColor: accentPrimary + '60' } : undefined}>
+                      <div className={`flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b ${agencyTheme ? 'agency-border' : 'border-yellow-400/20'}`} style={agencyTheme ? { borderColor: accentPrimary + '30' } : undefined}>
                         <div>
                           <div className="text-sm text-[#C0C0C0] mb-1">Domain Analyzed</div>
-                          <div className="text-2xl font-bold text-yellow-400 flex items-center gap-2">
+                          <div className="text-2xl font-bold flex items-center gap-2" style={{ color: agencyTheme ? accentPrimary : '#eab308' }}>
                             <Shield className="h-6 w-6" />
                             {audit?.domain || currentProject?.domain || auditData.domain || domain || 'N/A'}
                           </div>
@@ -1603,12 +1732,14 @@ export default function AuditDashboard() {
                             >
                               <Download className="h-5 w-5 mr-2" /> Get Full Report
                             </Button>
+                            {userProfile?.account_type !== 'brand' && !userProfile?.agency_id && (
                             <Button
                               className="bg-gradient-to-r from-[#C0C0C0] via-[#FFD700] to-yellow-400 text-black font-bold px-6 py-3 rounded-xl shadow-lg hover:scale-105 transition"
                               onClick={() => setShowBookModal(true)}
                             >
                               <Shield className="h-5 w-5 mr-2" /> Book Strategy Call
                             </Button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2878,21 +3009,24 @@ export default function AuditDashboard() {
                     )}
                   </section>
 
-                  <section className="w-full max-w-7xl mx-auto px-6 md:px-8 lg:px-10 py-12 flex flex-col md:flex-row items-center gap-10 justify-between rounded-3xl bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 border-yellow-400/50 shadow-2xl backdrop-blur-lg">
+                  <section className={`w-full max-w-7xl mx-auto px-6 md:px-8 lg:px-10 py-12 flex flex-col md:flex-row items-center gap-10 justify-between rounded-3xl bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 shadow-2xl backdrop-blur-lg ${agencyTheme ? 'agency-border' : 'border-yellow-400/50'}`} style={agencyTheme ? { borderColor: accentPrimary + '60' } : undefined}>
                     <div className="flex-1 text-center md:text-left">
-                      <div className="text-lg font-bold hero-gradient-text mb-2">Let us fix these issues for you — our Task Force executes what others only report.</div>
+                      <div className={`text-lg font-bold mb-2 ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>Let us fix these issues for you — {agencyName ? `${agencyName} executes what others only report.` : 'our Task Force executes what others only report.'}</div>
                       <div className="flex flex-col sm:flex-row gap-4 mt-4">
                         <Button
-                          className="bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold px-8 py-4 rounded-xl shadow-lg text-lg hover:bg-yellow-500 transition flex items-center gap-2"
+                          className={agencyTheme ? 'font-bold px-8 py-4 rounded-xl shadow-lg text-lg transition flex items-center gap-2' : 'bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold px-8 py-4 rounded-xl shadow-lg text-lg hover:bg-yellow-500 transition flex items-center gap-2'}
+                          style={agencyTheme ? { backgroundColor: accentPrimary, color: '#000' } : undefined}
                           onClick={() => setShowLeadModal(true)}
                         >
                           <Download className="h-5 w-5" /> Download PDF Report
                         </Button>
-                        <Button className="bg-gradient-to-r from-[#C0C0C0] via-[#FFD700] to-yellow-400 text-black font-bold px-8 py-4 rounded-xl shadow-lg text-lg hover:bg-yellow-500 transition flex items-center gap-2" asChild>
+                        {userProfile?.account_type !== 'brand' && !userProfile?.agency_id && (
+                        <Button className={agencyTheme ? 'font-bold px-8 py-4 rounded-xl shadow-lg text-lg transition flex items-center gap-2' : 'bg-gradient-to-r from-[#C0C0C0] via-[#FFD700] to-yellow-400 text-black font-bold px-8 py-4 rounded-xl shadow-lg text-lg hover:bg-yellow-500 transition flex items-center gap-2'} style={agencyTheme ? { backgroundColor: accentPrimary, color: '#000' } : undefined} asChild>
                           <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                            <Shield className="h-5 w-5" /> Book Consultation with SEO Task Force
+                            <Shield className="h-5 w-5" /> Book Consultation with {agencyName || 'SEO Task Force'}
                           </a>
                         </Button>
+                        )}
                       </div>
                     </div>
                   </section>
@@ -2904,28 +3038,28 @@ export default function AuditDashboard() {
 
         {showLeadModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div className="bg-[#181818] border-2 border-yellow-400/40 rounded-2xl p-8 w-full max-w-sm shadow-2xl flex flex-col items-center">
-              <h3 className="text-xl font-bold hero-gradient-text mb-2">Download PDF Report</h3>
-              <p className="text-[#FFD700] text-sm mb-4">Enter your details to receive the full report.</p>
+            <div className={`bg-[#181818] border-2 rounded-2xl p-8 w-full max-w-sm shadow-2xl flex flex-col items-center ${agencyTheme ? 'agency-border' : 'border-yellow-400/40'}`} style={agencyTheme ? { borderColor: accentPrimary + '60' } : undefined}>
+              <h3 className={`text-xl font-bold mb-2 ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>Download PDF Report</h3>
+              <p className="text-sm mb-4" style={{ color: agencyTheme ? accentPrimary : '#FFD700' }}>Enter your details to receive the full report.</p>
               <form className="w-full flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); handleDownloadPDF(); }}>
-                <input type="text" required placeholder="Your Name" value={leadName} onChange={e => setLeadName(e.target.value)} className="px-4 py-3 rounded-lg bg-[#232323] text-white border border-yellow-400/30 focus:border-yellow-400 outline-none" />
-                <input type="email" required placeholder="Your Email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} className="px-4 py-3 rounded-lg bg-[#232323] text-white border border-yellow-400/30 focus:border-yellow-400 outline-none" />
+                <input type="text" required placeholder="Your Name" value={leadName} onChange={e => setLeadName(e.target.value)} className="px-4 py-3 rounded-lg bg-[#232323] text-white border focus:outline-none" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)' }} />
+                <input type="email" required placeholder="Your Email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} className="px-4 py-3 rounded-lg bg-[#232323] text-white border focus:outline-none" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)' }} />
                 <div className="flex gap-3 mt-2">
-                  <button type="submit" className="flex-1 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold py-3 rounded-lg shadow hover:bg-yellow-500 transition">Download PDF</button>
-                  <button type="button" className="flex-1 bg-[#232323] border border-yellow-400/30 text-[#FFD700] font-bold py-3 rounded-lg hover:bg-yellow-900/30 transition" onClick={() => setShowLeadModal(false)}>Cancel</button>
+                  <button type="submit" className={agencyTheme ? 'flex-1 text-black font-bold py-3 rounded-lg shadow transition' : 'flex-1 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold py-3 rounded-lg shadow hover:bg-yellow-500 transition'} style={agencyTheme ? { backgroundColor: accentPrimary } : undefined}>Download PDF</button>
+                  <button type="button" className="flex-1 bg-[#232323] border font-bold py-3 rounded-lg hover:opacity-80 transition" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)', color: agencyTheme ? accentPrimary : '#FFD700' }} onClick={() => setShowLeadModal(false)}>Cancel</button>
                 </div>
               </form>
             </div>
           </div>
         )}
 
-        {showBookModal && (
+        {showBookModal && userProfile?.account_type !== 'brand' && !userProfile?.agency_id && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div className="bg-[#181818] border-2 border-yellow-400/40 rounded-2xl p-8 w-full max-w-sm shadow-2xl flex flex-col items-center">
-              <h3 className="text-xl font-bold hero-gradient-text mb-2">Book Free Strategy Call</h3>
-              <p className="text-[#FFD700] text-sm mb-4">Pick a time with our SEO Task Force.</p>
-              <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="w-full bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold py-3 rounded-lg shadow hover:bg-yellow-500 transition text-center mb-4">Open Calendar</a>
-              <button className="w-full bg-[#232323] border border-yellow-400/30 text-[#FFD700] font-bold py-3 rounded-lg hover:bg-yellow-900/30 transition" onClick={() => setShowBookModal(false)}>Cancel</button>
+            <div className={`bg-[#181818] border-2 rounded-2xl p-8 w-full max-w-sm shadow-2xl flex flex-col items-center ${agencyTheme ? 'agency-border' : 'border-yellow-400/40'}`} style={agencyTheme ? { borderColor: accentPrimary + '60' } : undefined}>
+              <h3 className={`text-xl font-bold mb-2 ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>Book Free Strategy Call</h3>
+              <p className="text-sm mb-4" style={{ color: agencyTheme ? accentPrimary : '#FFD700' }}>Pick a time with {agencyName ? agencyName : 'our SEO Task Force'}.</p>
+              <a href="https://calendly.com/khamareclarke/new-meeting" target="_blank" rel="noopener noreferrer" className="w-full text-black font-bold py-3 rounded-lg shadow transition text-center mb-4" style={{ backgroundColor: agencyTheme ? accentPrimary : undefined }}>Open Calendar</a>
+              <button className="w-full bg-[#232323] border font-bold py-3 rounded-lg hover:opacity-80 transition" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)', color: agencyTheme ? accentPrimary : '#FFD700' }} onClick={() => setShowBookModal(false)}>Cancel</button>
             </div>
           </div>
         )}

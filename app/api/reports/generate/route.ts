@@ -21,12 +21,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Audit ID is required' }, { status: 400 });
     }
 
-    // Get user's brand information
+    // Get user's brand information and agency (if client)
     const { data: userData } = await supabase
       .from('users')
-      .select('account_type, brand_name')
+      .select('account_type, brand_name, agency_id, full_name')
       .eq('id', user.id)
       .single();
+
+    let clientName: string | null = null;
+    let agencyNameForPdf: string | null = null;
+    if (user.agency_id || userData?.agency_id) {
+      const agencyId = user.agency_id || userData?.agency_id;
+      clientName = user.full_name || userData?.full_name || user.email || 'Client';
+      const { data: agencyUser } = await supabase
+        .from('users')
+        .select('brand_name, full_name')
+        .eq('id', agencyId)
+        .single();
+      agencyNameForPdf = agencyUser?.brand_name || agencyUser?.full_name || 'Agency';
+    }
 
     // Get audit data
     const { data: audit, error: auditError } = await supabase
@@ -68,9 +81,12 @@ export async function POST(request: NextRequest) {
       }));
     }
 
-    // Include brand name in whiteLabel if user is a brand account
+    // Brand: whiteLabel with companyName. Client: add clientName + agencyName for PDF header.
     const brandName = userData?.account_type === 'brand' && userData?.brand_name ? userData.brand_name : null;
-    const whiteLabelData = whiteLabel || (brandName ? { companyName: brandName } : undefined);
+    let whiteLabelData: { companyName?: string; clientName?: string; agencyName?: string } | undefined = whiteLabel || (brandName ? { companyName: brandName } : undefined);
+    if (clientName && agencyNameForPdf) {
+      whiteLabelData = { ...whiteLabelData, clientName, agencyName: agencyNameForPdf, companyName: whiteLabelData?.companyName ?? agencyNameForPdf };
+    }
 
     const reportData = {
       domain: audit.domain,

@@ -6,6 +6,7 @@ import { BacklinkChecker } from '@/lib/seo/backlink-checker';
 import { LocalSEOChecker } from '@/lib/seo/local-seo';
 import { logError } from '@/lib/utils/error-logger';
 import { sendAuditCompletedEmail, sendAuditExpiredEmail } from '@/lib/email';
+import { isAgencySubscribed } from '@/lib/agency-packages';
 
 export async function POST(request: NextRequest) {
   let user: User | null = null;
@@ -31,21 +32,55 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    // Get user's audit count and account type
+    // Get user's audit count, account type, and agency_id (for clients)
     let { data: userData, error: userError } = await supabase
       .from('users')
-      .select('audit_count, account_type, brand_name')
+      .select('audit_count, account_type, brand_name, agency_id')
       .eq('id', user.id)
       .single();
 
     let auditCount = userData?.audit_count || 0;
     const accountType = userData?.account_type || 'personal';
     const brandName = userData?.brand_name || null;
+    const agencyId = user.agency_id || userData?.agency_id || null;
     
     // If audit_count column doesn't exist, default to 0
     if (userError && userError.message?.includes('column') && userError.message?.includes('does not exist')) {
       console.warn('audit_count column missing - defaulting to 0. Please run migration.');
       auditCount = 0;
+    }
+
+    // Agency client: use agency package limits; require agency to be subscribed
+    let agencyAuditsUsed = 0;
+    let agencyAuditsLimit = 0;
+    if (agencyId) {
+      const { data: agencySettings } = await supabase
+        .from('agency_settings')
+        .select('audits_used_this_period, audits_limit, period_start_at, subscription_status, admin_granted_free')
+        .eq('agency_user_id', agencyId)
+        .single();
+      if (!isAgencySubscribed(agencySettings)) {
+        return NextResponse.json(
+          {
+            error: 'Your agency has not subscribed to a plan yet. Audits are unavailable until your agency subscribes.',
+            requiresAgencySubscription: true,
+          },
+          { status: 402 }
+        );
+      }
+      const periodStart = agencySettings?.period_start_at ? new Date(agencySettings.period_start_at) : null;
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      if (periodStart && periodStart < thirtyDaysAgo) {
+        await supabase
+          .from('agency_settings')
+          .update({ audits_used_this_period: 0, period_start_at: now.toISOString(), updated_at: now.toISOString() })
+          .eq('agency_user_id', agencyId);
+        agencyAuditsUsed = 0;
+      } else {
+        agencyAuditsUsed = agencySettings?.audits_used_this_period ?? 0;
+      }
+      agencyAuditsLimit = agencySettings?.audits_limit ?? 10;
     }
 
     // If profile query failed or profile doesn't exist, try to create it
@@ -102,13 +137,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Agency client: enforce agency package audit limit
+    if (agencyId) {
+      if (agencyAuditsUsed >= agencyAuditsLimit) {
+        return NextResponse.json(
+          {
+            error: `Your agency's audit limit for this period has been reached (${agencyAuditsUsed}/${agencyAuditsLimit}). Contact your agency to upgrade.`,
+            agencyLimitReached: true,
+          },
+          { status: 403 }
+        );
+      }
+      // Increment agency usage before running audit
+      const { error: agencyIncrementError } = await supabase
+        .from('agency_settings')
+        .update({
+          audits_used_this_period: agencyAuditsUsed + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('agency_user_id', agencyId);
+      if (agencyIncrementError) {
+        console.error('Error incrementing agency audit count:', agencyIncrementError);
+        return NextResponse.json(
+          { error: 'Failed to update usage. Please try again.' },
+          { status: 500 }
+        );
+      }
+    }
+
     // For free plan: Allow 2 free audits, then require payment
     // For brand accounts on free plan: Allow 2 free audits, then require brand plan
     // IMPORTANT: Check BEFORE incrementing to prevent race conditions
     const isBrandAccount = accountType === 'brand';
     const isFreePlan = profile.plan_type === 'free';
     
-    if (isFreePlan && auditCount >= 2) {
+    // Skip personal audit limit check if user is an agency client (already checked above)
+    if (!agencyId && isFreePlan && auditCount >= 2) {
       // Send audit expiration email
       try {
         await sendAuditExpiredEmail(
@@ -135,9 +199,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Increment audit count BEFORE running audit to prevent race conditions
+    // Increment audit count BEFORE running audit (personal accounts only; agency clients already incremented above)
     // This ensures that if multiple requests come in, only the allowed number will pass
-    if (isFreePlan) {
+    if (!agencyId && isFreePlan) {
       // First, ensure the audit_count column exists by trying to add it if needed
       // Then increment the count
       const { error: incrementError } = await supabase

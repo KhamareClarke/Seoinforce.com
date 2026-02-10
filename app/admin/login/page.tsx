@@ -152,6 +152,15 @@ export default function AdminLoginPage() {
               </a>
             </p>
           </div>
+
+          <details className="mt-6 group">
+            <summary className="text-sm text-[#C0C0C0] cursor-pointer list-none flex items-center justify-center gap-1 hover:text-yellow-400/80">
+              First time? How to create admin (no sign-up)
+            </summary>
+            <div className="mt-3 p-4 rounded-lg bg-black/50 border border-yellow-400/20 text-left text-xs text-[#C0C0C0] space-y-2">
+              <p>Run the SQL in <code className="bg-black/50 px-1 rounded">supabase/setup_admin_seoinforce.sql</code> in Supabase SQL Editor. Change the password <code className="bg-black/50 px-1 rounded">ChangeMe123</code> in that file to your desired password, then run it. Sign in here with admin@seoinforce.com and that password.</p>
+            </div>
+          </details>
         </div>
 
         <p className="text-center text-[#C0C0C0] text-xs mt-6">

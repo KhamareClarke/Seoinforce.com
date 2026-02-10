@@ -14,6 +14,9 @@ export interface User {
   email_verified: boolean;
   plan_type: string;
   is_admin: boolean;
+  account_type?: 'personal' | 'brand';
+  agency_id?: string | null;
+  brand_name?: string | null;
 }
 
 // Hash password
@@ -64,7 +67,7 @@ export async function getCurrentUser(request: NextRequest): Promise<User | null>
     const supabase = createSupabaseServerClient();
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, email, full_name, email_verified, plan_type, is_admin')
+      .select('id, email, full_name, email_verified, plan_type, is_admin, account_type, agency_id, brand_name')
       .eq('id', decoded.userId)
       .single();
 
@@ -79,6 +82,9 @@ export async function getCurrentUser(request: NextRequest): Promise<User | null>
       email_verified: user.email_verified,
       plan_type: user.plan_type,
       is_admin: user.is_admin,
+      account_type: user.account_type || 'personal',
+      agency_id: user.agency_id ?? null,
+      brand_name: user.brand_name ?? null,
     };
   } catch (error) {
     console.error('Error getting current user:', error);

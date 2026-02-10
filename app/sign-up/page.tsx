@@ -138,14 +138,14 @@ export default function SignUpPage() {
                       : 'bg-black/50 border-yellow-400/30 text-[#C0C0C0] hover:border-yellow-400/50'
                   }`}
                 >
-                  Brand
+                  Agency
                 </button>
               </div>
             </div>
 
             <div>
               <label htmlFor="fullName" className="block text-sm font-semibold text-[#FFD700] mb-2">
-                {accountType === 'brand' ? 'Your Name (Optional)' : 'Full Name (Optional)'}
+                {accountType === 'brand' ? 'Your name (optional)' : 'Full Name (Optional)'}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-yellow-400/60" />
@@ -164,7 +164,7 @@ export default function SignUpPage() {
               <>
                 <div>
                   <label htmlFor="brandName" className="block text-sm font-semibold text-[#FFD700] mb-2">
-                    Brand Name <span className="text-red-400">*</span>
+                    Agency / Brand name <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-yellow-400/60" />

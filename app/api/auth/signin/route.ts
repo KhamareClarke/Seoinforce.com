@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Get user by email
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, email, password_hash, email_verified, is_banned, full_name')
+      .select('id, email, password_hash, email_verified, is_banned, full_name, account_type, agency_id')
       .eq('email', email.toLowerCase())
       .single();
 
@@ -76,6 +76,8 @@ export async function POST(request: NextRequest) {
         email: user.email,
         full_name: user.full_name,
         email_verified: user.email_verified,
+        account_type: user.account_type || 'personal',
+        agency_id: user.agency_id ?? null,
       },
     });
 

@@ -135,3 +135,26 @@
 /* Hide horizontal scrollbar for logo strip when needed */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Agency white-label theme: logo, colors, text use agency primary/secondary */
+.agency-theme {
+  --agency-primary: #facc15;
+  --agency-secondary: #eab308;
+}
+.agency-theme .agency-sidebar-border { border-color: color-mix(in srgb, var(--agency-primary) 30%, transparent); }
+.agency-theme .agency-gradient-text {
+  background: linear-gradient(to right, #fff, var(--agency-primary), #fff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.agency-theme .agency-nav-text button,
+.agency-theme .agency-nav-text a { color: var(--agency-primary); }
+.agency-theme .agency-nav-text button:hover,
+.agency-theme .agency-nav-text a:hover { color: #fff; }
+.agency-theme .agency-header-title { background: linear-gradient(to right, #fff, var(--agency-primary)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.agency-theme [data-agency-accent] { background-color: var(--agency-primary); color: #000; border-color: var(--agency-primary); }
+.agency-theme .agency-border { border-color: color-mix(in srgb, var(--agency-primary) 40%, transparent); }
+.agency-theme .agency-text { color: var(--agency-primary); }
+.agency-theme .agency-bg-subtle { background-color: color-mix(in srgb, var(--agency-primary) 15%, transparent); }
+.agency-theme .agency-badge { background-color: color-mix(in srgb, var(--agency-primary) 25%, transparent); color: var(--agency-primary); }

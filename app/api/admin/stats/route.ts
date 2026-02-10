@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
       brand: accountTypeData?.filter(u => u.account_type === 'brand').length || 0,
     };
 
+    const totalAgencies = accountTypeCounts.brand;
+
     // Get audit statistics
     const { count: totalAudits } = await supabase
       .from('audits')
@@ -96,6 +98,7 @@ export async function GET(request: NextRequest) {
         active: (totalUsers || 0) - (bannedUsers || 0),
         subscriptionCounts,
         accountTypeCounts,
+        totalAgencies,
       },
       audits: {
         total: totalAudits || 0,

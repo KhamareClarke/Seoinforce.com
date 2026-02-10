@@ -61,19 +61,28 @@ export default function SignInPage() {
         return;
       }
 
-      // Success - check if user has projects
+      // Redirect by account type: agency (brand) -> agency dashboard; client -> client dashboard
+      if (data.user?.account_type === 'brand') {
+        router.push('/agency/dashboard');
+        router.refresh();
+        return;
+      }
+      if (data.user?.agency_id) {
+        router.push('/client/dashboard');
+        router.refresh();
+        return;
+      }
+
+      // Personal: check if user has projects
       const projectsResponse = await fetch('/api/projects');
       if (projectsResponse.ok) {
         const projectsData = await projectsResponse.json();
         if (!projectsData.projects || projectsData.projects.length === 0) {
-          // No projects, redirect to project creation
           router.push('/create-project');
         } else {
-          // Has projects, go to dashboard
           router.push('/audit/dashboard');
         }
       } else {
-        // If check fails, go to dashboard anyway
         router.push('/audit/dashboard');
       }
       router.refresh();

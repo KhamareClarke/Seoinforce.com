@@ -19,6 +19,8 @@ export interface ReportData {
   whiteLabel?: {
     logo?: string;
     companyName?: string;
+    clientName?: string;
+    agencyName?: string;
     colors?: {
       primary?: string;
       secondary?: string;
@@ -72,7 +74,15 @@ export class PDFReportGenerator {
   }
 
   private addCoverPage(doc: any, data: ReportData) {
-    // Header - Show brand name at the top if available
+    // Client + Agency names at top when report is for an agency client
+    if (data.whiteLabel?.clientName && data.whiteLabel?.agencyName) {
+      doc.fontSize(11).fillColor('#444444').text(`Prepared for: ${data.whiteLabel.clientName}`, { align: 'center' });
+      doc.moveDown(0.3);
+      doc.fontSize(11).fillColor('#444444').text(`Agency: ${data.whiteLabel.agencyName}`, { align: 'center' });
+      doc.moveDown(1.5);
+    }
+
+    // Header - Show brand/agency name at the top if available
     if (data.whiteLabel?.companyName) {
       doc.fontSize(28)
         .fillColor('#000000')

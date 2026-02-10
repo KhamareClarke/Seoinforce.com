@@ -28,7 +28,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-type TabType = 'dashboard' | 'users' | 'audits' | 'api-usage' | 'errors';
+type TabType = 'dashboard' | 'users' | 'audits' | 'api-usage' | 'errors' | 'agencies';
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -40,10 +40,12 @@ export default function AdminPanel() {
   const [audits, setAudits] = useState<any[]>([]);
   const [apiUsage, setApiUsage] = useState<any>(null);
   const [errorLogs, setErrorLogs] = useState<any[]>([]);
+  const [agencies, setAgencies] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
+  const [agencyTogglingFree, setAgencyTogglingFree] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdminAccess();
@@ -115,6 +117,12 @@ export default function AdminPanel() {
         if (response.ok) {
           const data = await response.json();
           setUsers(data.users || []);
+        }
+      } else if (activeTab === 'agencies') {
+        const response = await fetch('/api/admin/agencies');
+        if (response.ok) {
+          const data = await response.json();
+          setAgencies(data.agencies || []);
         }
       } else if (activeTab === 'audits') {
         const response = await fetch(`/api/admin/audits?page=${currentPage}&limit=50`);
@@ -393,6 +401,17 @@ WHERE email = 'your-email@example.com';`}
               <AlertTriangle className="h-5 w-5" />
               Error Logs
             </button>
+            <button
+              onClick={() => setActiveTab('agencies')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                activeTab === 'agencies'
+                  ? 'bg-yellow-400/20 text-yellow-400 border border-yellow-400/30'
+                  : 'text-[#C0C0C0] hover:bg-black/50'
+              }`}
+            >
+              <Shield className="h-5 w-5" />
+              Agencies
+            </button>
           </nav>
         </aside>
 
@@ -455,6 +474,18 @@ WHERE email = 'your-email@example.com';`}
                     {stats.errors?.unresolved || 0} unresolved
                   </div>
                 </div>
+
+                <button
+                  onClick={() => setActiveTab('agencies')}
+                  className="bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 border-yellow-400/30 rounded-xl p-6 text-left hover:border-yellow-400/50 transition"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Shield className="h-6 w-6 text-yellow-400" />
+                    <span className="text-xs text-[#C0C0C0]">Agencies</span>
+                  </div>
+                  <div className="text-3xl font-bold text-yellow-400">{stats.users?.totalAgencies ?? stats.users?.accountTypeCounts?.brand ?? 0}</div>
+                  <div className="text-sm text-[#C0C0C0] mt-1">Registered agencies</div>
+                </button>
               </div>
 
               {/* Subscription Breakdown */}
@@ -678,6 +709,120 @@ WHERE email = 'your-email@example.com';`}
                           </td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'agencies' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-3xl font-bold hero-gradient-text">Agencies</h2>
+                <Button onClick={loadData} variant="outline" className="border-yellow-400/50 text-yellow-400">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+              <p className="text-[#C0C0C0] text-sm">All registered agencies, their package, and client count.</p>
+              <div className="bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 border-yellow-400/30 rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-black/50 border-b border-yellow-400/20">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-yellow-400">Agency / Brand</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-yellow-400">Email</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-yellow-400">Package</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-yellow-400">Clients</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-yellow-400">Audits (used/limit)</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-yellow-400">Billing</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-yellow-400">Grant free</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-yellow-400">Registered</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {agencies.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="px-4 py-8 text-center text-[#C0C0C0]">
+                            No agencies registered yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        agencies.map((agency) => (
+                          <tr key={agency.id} className="border-b border-yellow-400/10 hover:bg-black/30">
+                            <td className="px-4 py-3">
+                              <div>
+                                <div className="font-semibold text-white">{agency.brand_name || agency.full_name || '—'}</div>
+                                {agency.brand_website && (
+                                  <div className="text-xs text-[#C0C0C0] truncate max-w-[180px]">{agency.brand_website}</div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-[#C0C0C0]">{agency.email}</td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                agency.package_tier === 'empire' ? 'bg-purple-500/20 text-purple-400' :
+                                agency.package_tier === 'growth' ? 'bg-yellow-400/20 text-yellow-400' :
+                                agency.package_tier === 'starter' ? 'bg-blue-500/20 text-blue-400' :
+                                'bg-gray-500/20 text-gray-400'
+                              }`}>
+                                {(agency.package_tier || 'starter').charAt(0).toUpperCase() + (agency.package_tier || 'starter').slice(1)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-yellow-400 font-semibold">{agency.clients_count ?? 0}</span>
+                              <span className="text-[#C0C0C0] text-xs"> / {agency.clients_limit ?? 3}</span>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span className="text-white">{agency.audits_used ?? 0}</span>
+                              <span className="text-[#C0C0C0]"> / {agency.audits_limit ?? 10}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                agency.admin_granted_free ? 'bg-green-500/20 text-green-400' :
+                                agency.subscription_status === 'active' || agency.subscription_status === 'trialing' ? 'bg-emerald-500/20 text-emerald-400' :
+                                agency.subscription_status === 'past_due' ? 'bg-amber-500/20 text-amber-400' :
+                                agency.subscription_status === 'canceled' || agency.subscription_status === 'unpaid' ? 'bg-red-500/20 text-red-400' :
+                                'bg-gray-500/20 text-gray-400'
+                              }`}>
+                                {agency.admin_granted_free ? 'Free' : (agency.subscription_status ? agency.subscription_status : 'None')}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className={agency.admin_granted_free ? 'border-green-400/50 text-green-400' : 'border-yellow-400/50 text-yellow-400'}
+                                disabled={agencyTogglingFree === agency.id}
+                                onClick={async () => {
+                                  setAgencyTogglingFree(agency.id);
+                                  try {
+                                    const res = await fetch('/api/admin/agencies', {
+                                      method: 'PATCH',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      credentials: 'include',
+                                      body: JSON.stringify({ agency_id: agency.id, admin_granted_free: !agency.admin_granted_free }),
+                                    });
+                                    if (res.ok) loadData();
+                                    else {
+                                      const d = await res.json();
+                                      alert(d.error || 'Failed to update');
+                                    }
+                                  } finally {
+                                    setAgencyTogglingFree(null);
+                                  }
+                                }}
+                              >
+                                {agencyTogglingFree === agency.id ? '…' : agency.admin_granted_free ? 'Revoke free' : 'Grant free'}
+                              </Button>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-[#C0C0C0]">
+                              {new Date(agency.created_at).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
