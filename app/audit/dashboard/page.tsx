@@ -347,6 +347,7 @@ export default function AuditDashboard() {
   const [showBookModal, setShowBookModal] = useState(false);
   const [leadName, setLeadName] = useState("");
   const [leadEmail, setLeadEmail] = useState("");
+  const [pdfEmailSent, setPdfEmailSent] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [competitorData, setCompetitorData] = useState<any>(null);
   const [vitalsHistory, setVitalsHistory] = useState<any[]>([]);
@@ -1166,14 +1167,30 @@ export default function AuditDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           auditId: auditId,
-          whiteLabel: undefined
+          whiteLabel: undefined,
+          leadEmail: leadEmail || undefined,
+          leadName: leadName || undefined,
         }),
       });
 
       if (response.ok) {
         const contentType = response.headers.get('content-type');
         
-        // Check if response is PDF
+        // PDF sent via email: API returns JSON success
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          if (data.success) {
+            setShowLeadModal(false);
+            setLeadName('');
+            setLeadEmail('');
+            setError(null);
+            setPdfEmailSent(true);
+            setTimeout(() => setPdfEmailSent(false), 6000);
+            return;
+          }
+        }
+        
+        // Direct PDF download (no lead email flow)
         if (contentType && contentType.includes('application/pdf')) {
           const blob = await response.blob();
           const url = window.URL.createObjectURL(blob);
@@ -1188,8 +1205,7 @@ export default function AuditDashboard() {
           setLeadName('');
           setLeadEmail('');
         } else {
-          // If not PDF, try to parse as JSON error
-          const errorData = await response.json();
+          const errorData = await response.json().catch(() => ({}));
           setError(errorData.error || 'Failed to generate PDF');
         }
       } else {
@@ -1466,6 +1482,12 @@ export default function AuditDashboard() {
         </header>
 
         <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 flex flex-col gap-10">
+          {pdfEmailSent && (
+            <div className="bg-green-500/20 border border-green-500/50 text-green-400 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 shrink-0" />
+              Report sent to your email. Check your inbox and use the download link in the email.
+            </div>
+          )}
           {showAuditHistory ? (
             <section className={`w-full py-6 rounded-3xl bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 shadow-2xl backdrop-blur-xl ${agencyTheme ? 'agency-border' : 'border-yellow-400/30'}`} style={agencyTheme ? { borderColor: accentPrimary + '50' } : undefined}>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 px-4 sm:px-6 gap-4">
@@ -3039,13 +3061,13 @@ export default function AuditDashboard() {
         {showLeadModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
             <div className={`bg-[#181818] border-2 rounded-2xl p-8 w-full max-w-sm shadow-2xl flex flex-col items-center ${agencyTheme ? 'agency-border' : 'border-yellow-400/40'}`} style={agencyTheme ? { borderColor: accentPrimary + '60' } : undefined}>
-              <h3 className={`text-xl font-bold mb-2 ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>Download PDF Report</h3>
-              <p className="text-sm mb-4" style={{ color: agencyTheme ? accentPrimary : '#FFD700' }}>Enter your details to receive the full report.</p>
+              <h3 className={`text-xl font-bold mb-2 ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>Get PDF Report by Email</h3>
+              <p className="text-sm mb-4" style={{ color: agencyTheme ? accentPrimary : '#FFD700' }}>Enter your details and we&apos;ll send the full report to your email with a download link.</p>
               <form className="w-full flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); handleDownloadPDF(); }}>
                 <input type="text" required placeholder="Your Name" value={leadName} onChange={e => setLeadName(e.target.value)} className="px-4 py-3 rounded-lg bg-[#232323] text-white border focus:outline-none" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)' }} />
                 <input type="email" required placeholder="Your Email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} className="px-4 py-3 rounded-lg bg-[#232323] text-white border focus:outline-none" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)' }} />
                 <div className="flex gap-3 mt-2">
-                  <button type="submit" className={agencyTheme ? 'flex-1 text-black font-bold py-3 rounded-lg shadow transition' : 'flex-1 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold py-3 rounded-lg shadow hover:bg-yellow-500 transition'} style={agencyTheme ? { backgroundColor: accentPrimary } : undefined}>Download PDF</button>
+                  <button type="submit" className={agencyTheme ? 'flex-1 text-black font-bold py-3 rounded-lg shadow transition' : 'flex-1 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold py-3 rounded-lg shadow hover:bg-yellow-500 transition'} style={agencyTheme ? { backgroundColor: accentPrimary } : undefined}>Send to Email</button>
                   <button type="button" className="flex-1 bg-[#232323] border font-bold py-3 rounded-lg hover:opacity-80 transition" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)', color: agencyTheme ? accentPrimary : '#FFD700' }} onClick={() => setShowLeadModal(false)}>Cancel</button>
                 </div>
               </form>

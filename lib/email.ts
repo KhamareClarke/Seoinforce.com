@@ -361,7 +361,7 @@ export async function sendAuditCompletedEmail(email: string, name: string, domai
   }
 }
 
-// Report download email
+// Report download email (notification only - no PDF)
 export async function sendReportDownloadedEmail(email: string, name: string, domain: string) {
   const appUrl = getAppUrl();
   const dashboardUrl = `${appUrl}/audit/dashboard`;
@@ -410,6 +410,76 @@ export async function sendReportDownloadedEmail(email: string, name: string, dom
     return { success: true, messageId: result.messageId };
   } catch (error) {
     console.error('Error sending report downloaded email:', error);
+    throw error;
+  }
+}
+
+// Send PDF report via email with attachment and download link
+export async function sendReportViaEmail(
+  email: string,
+  name: string,
+  domain: string,
+  shareToken: string,
+  pdfBuffer: Buffer
+) {
+  const appUrl = getAppUrl();
+  const downloadUrl = `${appUrl}/api/reports/generate?token=${shareToken}`;
+  const dashboardUrl = `${appUrl}/audit/dashboard`;
+  const safeFilename = `SEO-Report-${domain.replace(/[^a-z0-9.-]/gi, '-')}.pdf`;
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    to: email,
+    subject: `Your SEO Report: ${domain}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #fbbf24; background: #1f2937; padding: 20px; margin: 0; text-align: center; border-radius: 8px 8px 0 0;">
+          📄 Your SEO Audit Report
+        </h2>
+        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px;">
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Hi ${name || 'there'},
+          </p>
+          <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+            Your SEO report for <strong>${domain}</strong> is ready. The PDF is attached to this email.
+          </p>
+          <p style="color: #374151; font-size: 16px; margin-bottom: 24px;">
+            You can also download it using the button below:
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${downloadUrl}" style="display: inline-block; background: #fbbf24; color: #1f2937; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+              📥 Download PDF Report
+            </a>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
+            The report includes your SEO score, technical analysis, on-page insights, and actionable recommendations.
+          </p>
+
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${dashboardUrl}" style="color: #fbbf24; font-size: 14px;">View more audits in Dashboard →</a>
+          </div>
+        </div>
+        <div style="background: #1f2937; padding: 20px; text-align: center; color: #9ca3af; border-radius: 0 0 8px 8px;">
+          <p style="margin: 0;">Best regards,<br><strong>SEOInForce Team</strong></p>
+        </div>
+      </div>
+    `,
+    attachments: [
+      {
+        filename: safeFilename,
+        content: pdfBuffer,
+      },
+    ],
+  };
+
+  try {
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Report email sent successfully:', result.messageId);
+    return { success: true, messageId: result.messageId };
+  } catch (error) {
+    console.error('Error sending report via email:', error);
     throw error;
   }
 }

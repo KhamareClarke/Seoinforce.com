@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/client';
 import { getCurrentUser } from '@/lib/auth';
 import { PDFReportGenerator } from '@/lib/reports/pdf-generator';
 import { randomUUID } from 'crypto';
-import { sendReportDownloadedEmail } from '@/lib/email';
+import { sendReportDownloadedEmail, sendReportViaEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseServerClient();
 
-    const { auditId, whiteLabel } = await request.json();
+    const { auditId, whiteLabel, leadEmail, leadName } = await request.json();
+    const sendViaEmail = !!leadEmail;
 
     if (!auditId) {
       return NextResponse.json({ error: 'Audit ID is required' }, { status: 400 });
@@ -124,7 +125,30 @@ export async function POST(request: NextRequest) {
       console.error('Report save error:', reportError);
     }
 
-    // Send report download email
+    if (sendViaEmail) {
+      // Send PDF to the lead's email with attachment and download link
+      try {
+        await sendReportViaEmail(
+          leadEmail,
+          leadName || leadEmail?.split('@')[0] || 'there',
+          audit.domain,
+          shareToken,
+          pdfBuffer
+        );
+        return NextResponse.json({
+          success: true,
+          message: 'Report sent to your email. Check your inbox and use the download link in the email.',
+        });
+      } catch (emailError) {
+        console.error('Error sending report via email:', emailError);
+        return NextResponse.json(
+          { error: 'Failed to send report to your email. Please try again.' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // No lead email: send notification to logged-in user and return PDF for direct download
     try {
       await sendReportDownloadedEmail(
         user.email || '',
@@ -136,11 +160,7 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if email fails
     }
 
-    // In production, upload PDF to storage (Supabase Storage, S3, etc.)
-    // For now, return the PDF directly
-    // Convert Buffer to Uint8Array for NextResponse compatibility
     const pdfArray = new Uint8Array(pdfBuffer);
-    
     return new NextResponse(pdfArray, {
       headers: {
         'Content-Type': 'application/pdf',
