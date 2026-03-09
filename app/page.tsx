@@ -8,6 +8,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Container } from '@/components/ui/container';
+import { PageLayout } from '@/components/layout/page-layout';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ArrowRight, Globe, Shield, Award, Star, Trophy, Sparkles, Activity, Rocket, Wrench, FileText, Mail, Phone, Facebook, Twitter, Instagram, Linkedin, Github, Rss, Send, X } from 'lucide-react';
 import { Link as LucideLink } from 'lucide-react';
@@ -143,10 +145,10 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <PageLayout className="bg-black">
       {/* NAVIGATION - HERO SYSTEM */}
       <nav className="sticky top-0 z-50 bg-gradient-to-b from-black via-[#0a0a0a] to-[#111]/80 backdrop-blur-xl border-b border-yellow-400/10 shadow-2xl py-4">
-        <div className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16">
+        <Container size="wide">
           <div className="flex items-center justify-between" style={{ minHeight: '48px' }}>
             <div className="flex items-center gap-4 sm:gap-5 md:gap-6">
               <span className="inline-flex items-center justify-center h-12 sm:h-14 md:h-16 w-12 sm:w-14 md:w-16 rounded-full ring-[3px] ring-yellow-400/80 bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 overflow-hidden shadow-[0_0_15px_rgba(250,204,21,0.5)] transition-all duration-300 hover:shadow-[0_0_25px_rgba(250,204,21,0.6)] hover:scale-105">
@@ -202,7 +204,7 @@ export default function HomePage() {
         <div className="absolute left-1/4 top-1/4 w-48 h-48 rounded-full blur-3xl animate-float-slow bg-gradient-to-br from-yellow-400/20 via-yellow-500/10 to-transparent" />
         <div className="absolute right-1/4 bottom-1/4 w-48 h-48 rounded-full blur-3xl animate-float-slow animation-delay-2000 bg-gradient-to-br from-yellow-400/15 via-yellow-500/10 to-transparent" />
 
-        <div className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16 pt-8 pb-20 relative z-10">
+        <Container size="wide" className="pt-8 pb-20 relative z-10">
           <div className="text-center mb-20">
             <div className="flex flex-col items-center gap-2 mb-4">
               <span className="inline-flex items-center px-6 py-2.5 rounded-full bg-gradient-to-r from-yellow-400/20 via-yellow-500/20 to-yellow-400/20 text-yellow-400 font-semibold text-sm tracking-wide shadow-[0_4px_20px_-3px_rgba(250,204,21,0.2)] backdrop-blur-sm animate-fade-in border border-yellow-400/20 hover:border-yellow-400/30 hover:shadow-[0_4px_25px_-3px_rgba(250,204,21,0.25)] transition-all duration-300">
@@ -251,11 +253,12 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </div>
+        </Container>
       </section>
 
       {/* PROOF SECTION - HERO SYSTEM ENFORCED */}
-      <section className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16 py-32 bg-gradient-to-b from-transparent via-black/50 to-transparent">
+      <section className="py-[var(--section-py-lg)] bg-gradient-to-b from-transparent via-black/50 to-transparent">
+        <Container size="wide">
         <div className="text-center mb-16">
           <span className="inline-block uppercase text-yellow-400 text-sm font-bold tracking-[0.2em] mb-4">PROVEN RESULTS</span>
           <h2 className="text-5xl sm:text-6xl md:text-7xl font-black text-white mb-6 tracking-tight leading-[1.1]">Authority in Numbers</h2>
@@ -308,10 +311,12 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+        </Container>
       </section>
 
       {/* PRICING SECTION - HERO SYSTEM ENFORCED */}
-      <section className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16 py-32 bg-gradient-to-b from-transparent via-black/50 to-transparent">
+      <section className="py-[var(--section-py-lg)] bg-gradient-to-b from-transparent via-black/50 to-transparent">
+        <Container size="wide">
         <div className="text-center mb-16">
           <span className="inline-block uppercase text-yellow-400 text-sm font-bold tracking-[0.2em] mb-4">TRANSPARENT PRICING</span>
           <h2 className="text-5xl sm:text-6xl md:text-7xl font-black text-white mb-6 tracking-tight leading-[1.1]">Command Your Market</h2>
@@ -376,6 +381,7 @@ export default function HomePage() {
             ))}
           </div>
         )}
+        </Container>
       </section>
 
       {/* FAQ SECTION - HERO SYSTEM ENFORCED */}
@@ -403,11 +409,12 @@ export default function HomePage() {
             ))}
           </Accordion>
         </div>
+        </Container>
       </section>
 
       {/* FOOTER - HERO SHADOW */}
       <footer className="border-t border-yellow-400/10 bg-gradient-to-b from-black via-[#0a0a0a] to-black">
-        <div className="max-w-[1400px] mx-auto px-8 sm:px-12 lg:px-16 py-16">
+        <Container size="wide" className="py-16">
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div className="md:col-span-1">
               <div className="flex items-center gap-3 mb-4">
@@ -450,7 +457,7 @@ export default function HomePage() {
           <div className="pt-8 border-t border-yellow-400/10 text-center">
             <p className="text-[#C0C0C0] text-sm">© 2025 <span className="text-yellow-400 font-bold">SEO in Force</span>. All rights reserved.</p>
           </div>
-        </div>
+        </Container>
       </footer>
 
       {/* FLOATING CHAT - HERO SYSTEM */}
@@ -618,6 +625,10 @@ export default function HomePage() {
           </div>
         </div>
       )}
+    </PageLayout>
+  );
+}
+
     </div>
   );
 }
