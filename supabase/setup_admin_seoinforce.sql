@@ -14,7 +14,7 @@ INSERT INTO public.users (
 )
 VALUES (
   'admin@seoinforce.com',
-  crypt('ChangeMe123', gen_salt('bf')),
+  crypt('admin123', gen_salt('bf')),
   'Admin',
   TRUE,
   TRUE

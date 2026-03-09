@@ -4,8 +4,11 @@ import Stripe from 'stripe';
 import { sendPackagePurchaseEmail } from '@/lib/email';
 import { AGENCY_PACKAGES } from '@/lib/agency-packages';
 
+// Allow more time for Supabase + email so Stripe doesn't get timeout (e.g. Vercel 10s default)
+export const maxDuration = 25;
+
 // Lazy initialization to avoid build-time errors
-function getStripe() {
+function getStripe(): Stripe {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) {
     throw new Error('STRIPE_SECRET_KEY is not configured');
@@ -14,26 +17,33 @@ function getStripe() {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.text();
-  const signature = request.headers.get('stripe-signature');
+  let body: string;
+  try {
+    body = await request.text();
+  } catch (err) {
+    console.error('Stripe webhook: failed to read body', err);
+    return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+  }
 
+  const signature = request.headers.get('stripe-signature');
   if (!signature) {
+    console.error('Stripe webhook: missing stripe-signature header');
     return NextResponse.json({ error: 'No signature' }, { status: 400 });
   }
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
+    console.error('Stripe webhook: STRIPE_WEBHOOK_SECRET is not set (use Live mode signing secret from Stripe Dashboard)');
     return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
   }
 
-  const stripe = getStripe();
-
   let event: Stripe.Event;
-
   try {
+    const stripe = getStripe();
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Stripe webhook signature verification failed:', msg);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
@@ -189,11 +199,16 @@ export async function POST(request: NextRequest) {
         }
         break;
       }
+
+      default:
+        // Acknowledge other event types so Stripe stops retrying; we only act on the ones above
+        console.log(`Stripe webhook: received unhandled event type ${event.type} (${event.id})`);
+        break;
     }
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true }, { status: 200 });
   } catch (error) {
-    console.error('Webhook handler error:', error);
+    console.error('Stripe webhook handler error:', error);
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
 }
