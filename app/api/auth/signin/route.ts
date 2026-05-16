@@ -67,12 +67,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate token
     const token = generateToken(user.id, user.email);
 
-    // Create response and set auth cookie
+    let redirectTo = '/audit/dashboard';
+    if (user.account_type === 'brand') {
+      redirectTo = '/agency/dashboard';
+    } else if (user.agency_id) {
+      redirectTo = '/client/dashboard';
+    } else {
+      const { count } = await supabase
+        .from('projects')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      if (!count) {
+        redirectTo = '/create-project';
+      }
+    }
+
     const response = NextResponse.json({
       success: true,
+      redirectTo,
       user: {
         id: user.id,
         email: user.email,

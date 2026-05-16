@@ -1,23 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowRight, Mail, Lock } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 
-export default function SignInPage() {
+function SignInForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const router = useRouter();
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
-  // Check for messages from URL params
   useEffect(() => {
     const message = searchParams.get('message');
     const errorParam = searchParams.get('error');
@@ -29,69 +29,90 @@ export default function SignInPage() {
     } else if (errorParam === 'invalid_token') {
       setError('Invalid verification link. Please request a new one.');
     } else if (errorParam === 'token_expired') {
-      setError('Verification link has expired. Please sign up again.');
+      setError('Verification link has expired. Use Resend below or sign up again.');
     } else if (errorParam === 'verification_failed') {
       setError('Email verification failed. Please try again.');
     }
   }, [searchParams]);
+
+  const handleResendVerification = async () => {
+    const target = email.trim();
+    if (!target) {
+      setResendMessage('Enter your email above, then click Resend.');
+      return;
+    }
+    setResendLoading(true);
+    setResendMessage(null);
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: target }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setResendMessage(data.error || 'Could not resend verification email.');
+      } else {
+        setResendMessage(data.message || 'Verification email sent. Check spam folder.');
+      }
+    } catch {
+      setResendMessage('Could not resend. Try again in a minute.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(null);
+    setNeedsVerification(false);
+    setResendMessage(null);
 
     try {
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      let data: {
+        error?: string;
+        redirectTo?: string;
+        user?: { account_type?: string; agency_id?: string | null };
+      } = {};
+
+      try {
+        data = await response.json();
+      } catch {
+        setError('Invalid response from server. Try again.');
+        return;
+      }
 
       if (!response.ok) {
-        setError(data.error || 'Invalid email or password');
-        setLoading(false);
+        const msg = data.error || 'Invalid email or password';
+        setError(msg);
+        setNeedsVerification(msg.toLowerCase().includes('verify'));
         return;
       }
 
-      // Redirect by account type: agency (brand) -> agency dashboard; client -> client dashboard
-      if (data.user?.account_type === 'brand') {
-        router.push('/agency/dashboard');
-        router.refresh();
-        return;
-      }
-      if (data.user?.agency_id) {
-        router.push('/client/dashboard');
-        router.refresh();
-        return;
-      }
+      const redirect =
+        data.redirectTo ||
+        (data.user?.account_type === 'brand'
+          ? '/agency/dashboard'
+          : data.user?.agency_id
+            ? '/client/dashboard'
+            : '/audit/dashboard');
 
-      // Personal: check if user has projects
-      const projectsResponse = await fetch('/api/projects');
-      if (projectsResponse.ok) {
-        const projectsData = await projectsResponse.json();
-        if (!projectsData.projects || projectsData.projects.length === 0) {
-          router.push('/create-project');
-        } else {
-          router.push('/audit/dashboard');
-        }
-      } else {
-        router.push('/audit/dashboard');
-      }
-      router.refresh();
-    } catch (err) {
-      setError('An unexpected error occurred');
+      window.location.href = redirect;
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-[#0a0a0a] to-black flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
@@ -107,8 +128,19 @@ export default function SignInPage() {
         <div className="bg-gradient-to-b from-black/50 via-black/30 to-transparent border border-yellow-400/20 rounded-2xl p-6 sm:p-8 shadow-2xl">
           <form onSubmit={handleSignIn} className="space-y-6">
             {error && (
-              <div className="bg-red-500/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm">
-                {error}
+              <div className="bg-red-500/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm space-y-2">
+                <p>{error}</p>
+                {needsVerification && (
+                  <button
+                    type="button"
+                    onClick={() => void handleResendVerification()}
+                    disabled={resendLoading}
+                    className="text-yellow-400 hover:text-yellow-300 font-semibold underline disabled:opacity-50"
+                  >
+                    {resendLoading ? 'Sending…' : 'Resend verification email'}
+                  </button>
+                )}
+                {resendMessage && <p className="text-[#C0C0C0] text-xs">{resendMessage}</p>}
               </div>
             )}
 
@@ -170,12 +202,14 @@ export default function SignInPage() {
                 <span className="w-full border-t border-yellow-400/20"></span>
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-gradient-to-b from-black/50 via-black/30 to-transparent px-2 text-[#C0C0C0]">Or</span>
+                <span className="bg-gradient-to-b from-black/50 via-black/30 to-transparent px-2 text-[#C0C0C0]">
+                  Or
+                </span>
               </div>
             </div>
             <div className="mt-6 text-center">
               <p className="text-[#C0C0C0] text-sm">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link href="/sign-up" className="text-yellow-400 hover:text-yellow-300 font-semibold underline">
                   Create Account
                 </Link>
@@ -189,5 +223,13 @@ export default function SignInPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <SignInForm />
+    </Suspense>
   );
 }
