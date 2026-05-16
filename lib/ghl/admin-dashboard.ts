@@ -134,9 +134,9 @@ export async function fetchGhlAdminDashboard(days = 30) {
 
   const smsRows = smsLogs ?? [];
   const recentRows = smsRecent ?? [];
-  const recentUserIds = [
-    ...new Set(recentRows.map((r) => r.user_id).filter((id): id is string => Boolean(id))),
-  ];
+  const recentUserIds = Array.from(
+    new Set(recentRows.map((r) => r.user_id).filter((id): id is string => Boolean(id)))
+  );
   let emailByUserId: Record<string, string> = {};
   if (recentUserIds.length > 0) {
     const { data: recentUsers } = await supabase

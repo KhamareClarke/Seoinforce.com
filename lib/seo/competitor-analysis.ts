@@ -111,7 +111,7 @@ export async function runCompetitorAnalysis(args: {
   const opportunities: KeywordGapItem[] = [];
   const advantages: KeywordGapItem[] = [];
 
-  for (const [kw, comp] of compMap) {
+  for (const [kw, comp] of Array.from(compMap)) {
     const yours = yourMap.get(kw);
     if (yours) {
       shared.push({
@@ -143,7 +143,7 @@ export async function runCompetitorAnalysis(args: {
     }
   }
 
-  for (const [kw, yours] of yourMap) {
+  for (const [kw, yours] of Array.from(yourMap)) {
     if (!compMap.has(kw)) {
       advantages.push({
         keyword: yours.keyword,
@@ -160,9 +160,11 @@ export async function runCompetitorAnalysis(args: {
   advantages.sort((a, b) => b.opportunityScore - a.opportunityScore);
 
   const rankComparisons: CompetitorAnalysisResult['rankComparisons'] = [];
-  const compareSet = new Set([...shared.map((s) => s.keyword), ...opportunities.slice(0, 15).map((o) => o.keyword)]);
+  const compareSet = new Set(
+    shared.map((s) => s.keyword).concat(opportunities.slice(0, 15).map((o) => o.keyword))
+  );
 
-  for (const keyword of compareSet) {
+  for (const keyword of Array.from(compareSet)) {
     const yours = yourMap.get(keyword.toLowerCase());
     const comp = compMap.get(keyword.toLowerCase());
     let yourRank = yours?.rank ?? null;
@@ -327,7 +329,7 @@ async function analyzeCompetitorContent(
   }
 
   return {
-    topics: [...new Set(topics)].slice(0, 15),
+    topics: Array.from(new Set(topics)).slice(0, 15),
     blogPostsFound,
     avgWordCountEstimate: blogPostsFound > 0 ? Math.round(totalWords / Math.max(blogPostsFound, 1)) : totalWords,
     contentGaps,

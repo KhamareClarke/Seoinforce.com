@@ -57,6 +57,14 @@ export const metadata: Metadata = {
     description:
       'Take command of search with AI-powered SEO audits, competitor analysis, and white-label SEO reports. Get results fast – or let our Task Force do it for you.',
     siteName: 'SEOInForce',
+    images: [
+      {
+        url: '/logo.svg',
+        width: 500,
+        height: 500,
+        alt: 'SEOInForce — SEO audits and white-label reports',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
@@ -64,6 +72,7 @@ export const metadata: Metadata = {
     description:
       'Take command of search with AI-powered SEO audits, competitor analysis, and white-label SEO reports. Get results fast – or let our Task Force do it for you.',
     creator: '@seoinforce',
+    images: ['/logo.svg'],
   },
   robots: {
     index: true,
