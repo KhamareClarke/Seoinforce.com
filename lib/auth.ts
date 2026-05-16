@@ -92,27 +92,20 @@ export async function getCurrentUser(request: NextRequest): Promise<User | null>
   }
 }
 
-/** Shared cookie domain so www and apex both receive auth-token. */
-function getAuthCookieDomain(): string | undefined {
+/** Cookie domain from request host — avoids rejected Domain= on vercel.app previews. */
+export function getAuthCookieDomain(request?: NextRequest): string | undefined {
   if (process.env.NODE_ENV !== 'production') return undefined;
-  try {
-    const raw = (process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com').trim();
-    const host = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).hostname;
-    if (host === 'seoinforce.com' || host.endsWith('.seoinforce.com')) {
-      return '.seoinforce.com';
-    }
-    const parts = host.split('.');
-    if (parts.length >= 2) {
-      return `.${parts.slice(-2).join('.')}`;
-    }
-  } catch {
-    /* ignore */
+  const host =
+    request?.headers.get('x-forwarded-host')?.split(',')[0]?.trim().split(':')[0] ||
+    request?.headers.get('host')?.split(':')[0];
+  if (host === 'seoinforce.com' || host === 'www.seoinforce.com' || host?.endsWith('.seoinforce.com')) {
+    return '.seoinforce.com';
   }
   return undefined;
 }
 
-export function getAuthCookieOptions(maxAge = 60 * 60 * 24 * 7) {
-  const domain = getAuthCookieDomain();
+export function getAuthCookieOptions(maxAge = 60 * 60 * 24 * 7, request?: NextRequest) {
+  const domain = getAuthCookieDomain(request);
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -124,13 +117,13 @@ export function getAuthCookieOptions(maxAge = 60 * 60 * 24 * 7) {
 }
 
 // Set auth cookie (used in API routes)
-export function setAuthCookie(token: string, response: NextResponse) {
-  response.cookies.set('auth-token', token, getAuthCookieOptions());
+export function setAuthCookie(token: string, response: NextResponse, request?: NextRequest) {
+  response.cookies.set('auth-token', token, getAuthCookieOptions(60 * 60 * 24 * 7, request));
 }
 
 // Clear auth cookie (used in API routes)
-export function clearAuthCookie(response: NextResponse) {
-  response.cookies.set('auth-token', '', { ...getAuthCookieOptions(0), maxAge: 0 });
+export function clearAuthCookie(response: NextResponse, request?: NextRequest) {
+  response.cookies.set('auth-token', '', { ...getAuthCookieOptions(0, request), maxAge: 0 });
 }
 
 // Generate verification token

@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     if (redirect) {
       const dest = new URL(redirectTo, request.url);
       const redirectResponse = NextResponse.redirect(dest, 303);
-      setAuthCookie(token, redirectResponse);
+      setAuthCookie(token, redirectResponse, request);
       return redirectResponse;
     }
 
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    setAuthCookie(token, response);
+    setAuthCookie(token, response, request);
     return response;
   } catch (error) {
     console.error('Signin error:', error);

@@ -1,20 +1,17 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { verifyToken } from '../auth';
+import { verifyTokenEdge } from '../auth-edge';
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
 
-  // Get auth token from cookie
+  // Get auth token from cookie (verify with jose — jsonwebtoken does not run on Edge)
   const token = request.cookies.get('auth-token')?.value;
   let user = null;
 
   if (token) {
-    const decoded = verifyToken(token);
-    if (decoded) {
-      user = decoded;
-    }
+    user = await verifyTokenEdge(token);
   }
 
   // Allow access to login pages and public routes without authentication
