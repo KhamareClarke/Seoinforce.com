@@ -186,7 +186,7 @@ export default function HomePage() {
               <a href="#" className="block py-2 px-3 text-yellow-400 font-bold bg-yellow-500/10 rounded transition">Sign In</a>
             </div>
           )}
-        </div>
+        </Container>
       </nav>
 
       {/* HERO SECTION - SOURCE OF TRUTH */}
@@ -409,7 +409,6 @@ export default function HomePage() {
             ))}
           </Accordion>
         </div>
-        </Container>
       </section>
 
       {/* FOOTER - HERO SHADOW */}
@@ -626,9 +625,5 @@ export default function HomePage() {
         </div>
       )}
     </PageLayout>
-  );
-}
-
-    </div>
   );
 }
