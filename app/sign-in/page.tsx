@@ -32,6 +32,17 @@ function SignInForm() {
       setError('Verification link has expired. Use Resend below or sign up again.');
     } else if (errorParam === 'verification_failed') {
       setError('Email verification failed. Please try again.');
+    } else if (errorParam === 'invalid_credentials') {
+      setError('Invalid email or password');
+    } else if (errorParam === 'email_unverified') {
+      setError(
+        'Please verify your email address before signing in. Check your inbox for the verification link.'
+      );
+      setNeedsVerification(true);
+    } else if (errorParam === 'banned') {
+      setError('Your account has been banned. Please contact support.');
+    } else if (errorParam === 'signin_failed') {
+      setError('Sign in failed. Please try again.');
     }
   }, [searchParams]);
 
@@ -62,7 +73,7 @@ function SignInForm() {
     }
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
@@ -70,48 +81,25 @@ function SignInForm() {
     setNeedsVerification(false);
     setResendMessage(null);
 
-    try {
-      const response = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
+    // Full-page POST so Set-Cookie is applied before navigation (avoids refresh loop).
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/api/auth/signin';
+    form.style.display = 'none';
 
-      let data: {
-        error?: string;
-        redirectTo?: string;
-        user?: { account_type?: string; agency_id?: string | null };
-      } = {};
+    const addField = (name: string, value: string) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    };
 
-      try {
-        data = await response.json();
-      } catch {
-        setError('Invalid response from server. Try again.');
-        return;
-      }
-
-      if (!response.ok) {
-        const msg = data.error || 'Invalid email or password';
-        setError(msg);
-        setNeedsVerification(msg.toLowerCase().includes('verify'));
-        return;
-      }
-
-      const redirect =
-        data.redirectTo ||
-        (data.user?.account_type === 'brand'
-          ? '/agency/dashboard'
-          : data.user?.agency_id
-            ? '/client/dashboard'
-            : '/audit/dashboard');
-
-      window.location.href = redirect;
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    addField('email', email.trim());
+    addField('password', password);
+    addField('redirect', '1');
+    document.body.appendChild(form);
+    form.submit();
   };
 
   return (

@@ -92,20 +92,45 @@ export async function getCurrentUser(request: NextRequest): Promise<User | null>
   }
 }
 
-// Set auth cookie (used in API routes)
-export function setAuthCookie(token: string, response: NextResponse) {
-  response.cookies.set('auth-token', token, {
+/** Shared cookie domain so www and apex both receive auth-token. */
+function getAuthCookieDomain(): string | undefined {
+  if (process.env.NODE_ENV !== 'production') return undefined;
+  try {
+    const raw = (process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com').trim();
+    const host = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).hostname;
+    if (host === 'seoinforce.com' || host.endsWith('.seoinforce.com')) {
+      return '.seoinforce.com';
+    }
+    const parts = host.split('.');
+    if (parts.length >= 2) {
+      return `.${parts.slice(-2).join('.')}`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
+
+export function getAuthCookieOptions(maxAge = 60 * 60 * 24 * 7) {
+  const domain = getAuthCookieDomain();
+  return {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    sameSite: 'lax' as const,
+    maxAge,
     path: '/',
-  });
+    ...(domain ? { domain } : {}),
+  };
+}
+
+// Set auth cookie (used in API routes)
+export function setAuthCookie(token: string, response: NextResponse) {
+  response.cookies.set('auth-token', token, getAuthCookieOptions());
 }
 
 // Clear auth cookie (used in API routes)
 export function clearAuthCookie(response: NextResponse) {
-  response.cookies.delete('auth-token');
+  response.cookies.set('auth-token', '', { ...getAuthCookieOptions(0), maxAge: 0 });
 }
 
 // Generate verification token
