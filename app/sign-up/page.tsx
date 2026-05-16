@@ -18,6 +18,10 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [successEmail, setSuccessEmail] = useState('');
+  const [emailSent, setEmailSent] = useState(true);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
   const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -69,9 +73,11 @@ export default function SignUpPage() {
         return;
       }
 
-      // Success - email verification required
+      setSuccessEmail(email);
+      setEmailSent(data.emailSent !== false);
       setSuccess(true);
       setError(null);
+      setResendMessage(null);
       setEmail('');
       setPassword('');
       setConfirmPassword('');
@@ -81,6 +87,31 @@ export default function SignUpPage() {
       console.error('Sign up error:', err);
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!successEmail) return;
+    setResendLoading(true);
+    setResendMessage(null);
+    setError(null);
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: successEmail }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setResendMessage(data.error || 'Could not resend email');
+        return;
+      }
+      setEmailSent(true);
+      setResendMessage(data.message || 'Verification email sent.');
+    } catch {
+      setResendMessage('Could not resend email. Try again in a minute.');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -104,8 +135,33 @@ export default function SignUpPage() {
             )}
 
             {success && !error && (
-              <div className="bg-green-500/20 border border-green-500/50 text-green-400 px-4 py-3 rounded-lg text-sm">
-                Account created successfully! Please check your email to verify your account before signing in.
+              <div
+                className={`px-4 py-3 rounded-lg text-sm border ${
+                  emailSent
+                    ? 'bg-green-500/20 border-green-500/50 text-green-400'
+                    : 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                }`}
+              >
+                {emailSent ? (
+                  <p>
+                    Account created! We sent a verification link to <strong>{successEmail}</strong>.
+                    Check your inbox and spam folder, then sign in.
+                  </p>
+                ) : (
+                  <p>
+                    Account created for <strong>{successEmail}</strong>, but the verification email
+                    could not be sent. Use Resend below or contact support.
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void handleResendVerification()}
+                  disabled={resendLoading || !successEmail}
+                  className="mt-3 text-yellow-400 hover:text-yellow-300 font-semibold underline disabled:opacity-50"
+                >
+                  {resendLoading ? 'Sending…' : 'Resend verification email'}
+                </button>
+                {resendMessage && <p className="mt-2 text-[#C0C0C0]">{resendMessage}</p>}
               </div>
             )}
 

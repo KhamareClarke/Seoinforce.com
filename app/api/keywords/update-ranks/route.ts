@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/client';
 import { getCurrentUser } from '@/lib/auth';
 import { KeywordTracker } from '@/lib/seo/keyword-tracker';
+import { handleKeywordRankChange } from '@/lib/ghl/rank-change-detector';
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,6 +64,26 @@ export async function POST(request: NextRequest) {
           project?.domain || '',
           keyword.location
         );
+
+        const { data: priorRows } = await supabase
+          .from('keyword_rankings')
+          .select('rank, date')
+          .eq('keyword_id', keyword.id)
+          .order('date', { ascending: false })
+          .limit(2);
+
+        const previousRank =
+          priorRows?.find((r) => r.date !== today)?.rank ?? priorRows?.[1]?.rank ?? null;
+
+        if (ranking.rank != null && project?.user_id && project?.domain) {
+          handleKeywordRankChange({
+            userId: project.user_id,
+            domain: project.domain,
+            keyword: keyword.keyword,
+            previousRank,
+            newRank: ranking.rank,
+          });
+        }
 
         // Check if ranking already exists for today
         const { data: existing } = await supabase

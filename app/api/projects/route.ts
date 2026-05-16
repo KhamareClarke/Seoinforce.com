@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/client';
 import { getCurrentUser } from '@/lib/auth';
 import { sendProjectCreatedEmail } from '@/lib/email';
+import { syncUserToGhlById } from '@/lib/ghl/sync-user';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseServerClient();
 
-    const { domain, name } = await request.json();
+    const { domain, name, companyName } = await request.json();
 
     if (!domain) {
       return NextResponse.json({ error: 'Domain is required' }, { status: 400 });
@@ -47,6 +48,14 @@ export async function POST(request: NextRequest) {
 
     if (projectError) {
       return NextResponse.json({ error: 'Failed to create project' }, { status: 500 });
+    }
+
+    if (companyName && typeof companyName === 'string' && companyName.trim()) {
+      await supabase
+        .from('users')
+        .update({ company_name: companyName.trim(), updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+      void syncUserToGhlById(user.id);
     }
 
     // Send project creation email

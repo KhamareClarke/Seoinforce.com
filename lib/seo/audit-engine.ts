@@ -54,6 +54,7 @@ export interface AuditResult {
     fix_suggestion: string;
     page_url?: string;
   }>;
+  technical_deep?: import('./technical-deep').TechnicalDeepResult;
   backlinks?: {
     total_count: number;
     domain_count: number;
@@ -145,7 +146,34 @@ export class SEOAuditEngine {
       );
 
       // Generate issues
-      const issues = this.generateIssues(technical, onpage, content);
+      let issues = this.generateIssues(technical, onpage, content);
+
+      let technical_deep: AuditResult['technical_deep'];
+      try {
+        const { analyzeTechnicalDeep } = await import('./technical-deep');
+        technical_deep = await analyzeTechnicalDeep({
+          baseUrl: this.baseUrl,
+          html,
+          pagespeed: {
+            lcp: (technical as { lcp?: number }).lcp ?? null,
+            fcp: (technical as { fcp?: number }).fcp ?? null,
+            cls: (technical as { cls?: number }).cls ?? null,
+          },
+        });
+        for (const check of technical_deep.checks) {
+          if (check.pass) continue;
+          issues.push({
+            type: 'technical',
+            severity: check.severity,
+            title: check.label,
+            description: check.detail,
+            fix_suggestion: check.fix || 'See technical recommendations in your audit dashboard.',
+          });
+        }
+      } catch (deepErr) {
+        console.warn('Technical deep analysis skipped:', deepErr);
+      }
+
       console.log(`Generated ${issues.length} issues for audit:`, issues.map((i: any) => i.title));
       console.log('On-page data:', {
         open_graph: onpage.open_graph,
@@ -164,6 +192,7 @@ export class SEOAuditEngine {
         onpage,
         content,
         issues,
+        technical_deep,
       };
     } catch (error) {
       console.error('Audit error:', error);
@@ -881,11 +910,14 @@ export class SEOAuditEngine {
       const lighthouse = response.data.lighthouseResult;
       const audits = lighthouse.audits;
       
+      const fidAudit =
+        audits['max-potential-fid'] || audits['experimental-interaction-to-next-paint'];
       const metrics = {
         lcp: audits['largest-contentful-paint']?.numericValue ? audits['largest-contentful-paint'].numericValue / 1000 : null,
         fcp: audits['first-contentful-paint']?.numericValue ? audits['first-contentful-paint'].numericValue / 1000 : null,
         tti: audits['interactive']?.numericValue ? audits['interactive'].numericValue / 1000 : null,
         cls: audits['cumulative-layout-shift']?.numericValue || null,
+        fid: fidAudit?.numericValue ? fidAudit.numericValue : null,
       };
 
       console.log('PageSpeed Insights: Successfully fetched metrics', metrics);

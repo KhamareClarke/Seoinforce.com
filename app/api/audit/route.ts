@@ -7,6 +7,11 @@ import { LocalSEOChecker } from '@/lib/seo/local-seo';
 import { logError } from '@/lib/utils/error-logger';
 import { sendAuditCompletedEmail, sendAuditExpiredEmail } from '@/lib/email';
 import { isAgencySubscribed } from '@/lib/agency-packages';
+import { getSiteUrl } from '@/lib/site-url';
+import { sendSmsForUserEvent } from '@/lib/ghl/sms';
+import { syncUserToGhlById } from '@/lib/ghl/sync-user';
+import { touchUserLastActive } from '@/lib/user-activity';
+import { emitAuditCompletedWorkflow } from '@/lib/ghl/workflow-triggers';
 
 export async function POST(request: NextRequest) {
   let user: User | null = null;
@@ -289,6 +294,26 @@ export async function POST(request: NextRequest) {
           result.technical.lcp = psiData.lcp;
           result.technical.fcp = psiData.fcp;
           result.technical.tti = psiData.tti;
+          (result.technical as { cls?: number }).cls = psiData.cls;
+          if (result.technical_deep) {
+            result.technical_deep.lcp = psiData.lcp ?? result.technical_deep.lcp;
+            result.technical_deep.cls = psiData.cls ?? result.technical_deep.cls;
+            result.technical_deep.fidMs = psiData.fid ?? result.technical_deep.fidMs;
+            for (const check of result.technical_deep.checks) {
+              if (check.id === 'lcp' && psiData.lcp != null) {
+                check.pass = psiData.lcp < 2.5;
+                check.detail = `LCP ${psiData.lcp}s`;
+              }
+              if (check.id === 'cls' && psiData.cls != null) {
+                check.pass = psiData.cls < 0.1;
+                check.detail = `CLS ${psiData.cls}`;
+              }
+              if (check.id === 'fid' && psiData.fid != null) {
+                check.pass = psiData.fid < 100;
+                check.detail = `FID ${psiData.fid}ms`;
+              }
+            }
+          }
           console.log('PageSpeed Insights: Successfully fetched and included in result', psiData);
         }
       } catch (psiError) {
@@ -510,6 +535,49 @@ export async function POST(request: NextRequest) {
       } catch (emailError) {
         console.error('Error sending audit completion email:', emailError);
         // Don't fail the request if email fails
+      }
+
+      try {
+        await touchUserLastActive(user.id);
+        void syncUserToGhlById(user.id);
+      } catch (actErr) {
+        console.warn('last_active / GHL sync after audit:', actErr);
+      }
+
+      try {
+        await sendSmsForUserEvent({
+          userId: user.id,
+          event: 'audit_completion',
+          vars: {
+            domain,
+            score: result.overall_score ?? 0,
+            link: `${getSiteUrl()}/audit/dashboard`,
+          },
+        });
+      } catch (smsErr) {
+        console.warn('GHL SMS (audit completion) failed or skipped:', smsErr);
+      }
+
+      try {
+        const rawIssues = result.issues || [];
+        const issuesCriticalOrHigh = rawIssues.filter((i: { severity?: string }) => {
+          const s = String(i.severity || '').toLowerCase();
+          return s === 'critical' || s === 'high';
+        }).length;
+        emitAuditCompletedWorkflow({
+          userId: user.id,
+          email: user.email,
+          fullName: user.full_name,
+          planType: profile.plan_type,
+          domain,
+          auditId: audit.id,
+          overallScore: result.overall_score || 0,
+          issuesTotal: rawIssues.length,
+          issuesCriticalOrHigh,
+          dashboardUrl: `${getSiteUrl()}/audit/dashboard`,
+        });
+      } catch (wfErr) {
+        console.warn('GHL workflow (audit_completed):', wfErr);
       }
 
       // Save issues

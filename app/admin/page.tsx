@@ -427,6 +427,31 @@ WHERE email = 'your-email@example.com';`}
                 </Button>
               </div>
 
+              <div className="bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 border-yellow-400/30 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-yellow-400">Go High Level</h3>
+                  <p className="text-sm text-[#C0C0C0] mt-1">
+                    Connection status, contact sync, SMS metrics, workflow logs, and errors.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="border-yellow-400/50 text-yellow-400"
+                    onClick={() => router.push('/admin/integrations/ghl')}
+                  >
+                    GHL integration
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-yellow-400/40 text-[#C0C0C0]"
+                    onClick={() => router.push('/admin/ghl-metrics')}
+                  >
+                    GHL metrics
+                  </Button>
+                </div>
+              </div>
+
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 border-yellow-400/30 rounded-xl p-6">

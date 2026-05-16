@@ -4,6 +4,10 @@ import { getCurrentUser } from '@/lib/auth';
 import { PDFReportGenerator } from '@/lib/reports/pdf-generator';
 import { randomUUID } from 'crypto';
 import { sendReportDownloadedEmail, sendReportViaEmail } from '@/lib/email';
+import { getSiteUrl } from '@/lib/site-url';
+import { sendSmsForUserEvent } from '@/lib/ghl/sms';
+import { syncUserToGhlById } from '@/lib/ghl/sync-user';
+import { touchUserLastActive } from '@/lib/user-activity';
 
 export async function POST(request: NextRequest) {
   try {
@@ -135,6 +139,20 @@ export async function POST(request: NextRequest) {
           shareToken,
           pdfBuffer
         );
+        try {
+          await touchUserLastActive(user.id);
+          void syncUserToGhlById(user.id);
+          await sendSmsForUserEvent({
+            userId: user.id,
+            event: 'report_ready',
+            vars: {
+              domain: audit.domain,
+              link: `${getSiteUrl()}/audit/dashboard`,
+            },
+          });
+        } catch (smsErr) {
+          console.warn('GHL SMS report_ready (lead path):', smsErr);
+        }
         return NextResponse.json({
           success: true,
           message: 'Report sent to your email. Check your inbox and use the download link in the email.',
@@ -155,6 +173,20 @@ export async function POST(request: NextRequest) {
         user.full_name || user.email?.split('@')[0] || 'User',
         audit.domain
       );
+      try {
+        await touchUserLastActive(user.id);
+        void syncUserToGhlById(user.id);
+        await sendSmsForUserEvent({
+          userId: user.id,
+          event: 'report_ready',
+          vars: {
+            domain: audit.domain,
+            link: `${getSiteUrl()}/audit/dashboard`,
+          },
+        });
+      } catch (smsErr) {
+        console.warn('GHL SMS report_ready:', smsErr);
+      }
     } catch (emailError) {
       console.error('Error sending report download email:', emailError);
       // Don't fail the request if email fails

@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/client';
 import { hashPassword, generateVerificationToken } from '@/lib/auth';
-import nodemailer from 'nodemailer';
+import { syncUserToGhlById } from '@/lib/ghl/sync-user';
+import { getSiteUrl } from '@/lib/site-url';
+import { emitSignupWorkflow } from '@/lib/ghl/workflow-triggers';
+import { buildVerificationUrl, sendVerificationEmail } from '@/lib/auth-email';
 
 export const dynamic = 'force-dynamic';
-
-// Email transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
-    pass: process.env.EMAIL_PASS || '',
-  },
-});
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { email, password, fullName, accountType, brandName, brandWebsite } = body;
 
-    // Validation
     if (!email || !email.includes('@')) {
       return NextResponse.json(
         { error: 'Please enter a valid email address' },
@@ -36,7 +29,6 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseServerClient();
 
-    // Check if user already exists
     const { data: existingUser } = await supabase
       .from('users')
       .select('id')
@@ -50,15 +42,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash password
-    const passwordHash = await hashPassword(password);
-
-    // Generate verification token
-    const verificationToken = generateVerificationToken();
-    const verificationTokenExpires = new Date();
-    verificationTokenExpires.setHours(verificationTokenExpires.getHours() + 24); // 24 hours
-
-    // Validate brand account
     if (accountType === 'brand' && !brandName) {
       return NextResponse.json(
         { error: 'Brand name is required for brand accounts' },
@@ -66,7 +49,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create user
+    const passwordHash = await hashPassword(password);
+    const verificationToken = generateVerificationToken();
+    const verificationTokenExpires = new Date();
+    verificationTokenExpires.setHours(verificationTokenExpires.getHours() + 24);
+
     const { data: user, error: userError } = await supabase
       .from('users')
       .insert({
@@ -90,82 +77,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send verification email
-    // Always use production URL in emails (never localhost)
-    let appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com';
-    // If URL contains localhost, use production URL instead
-    if (appUrl.includes('localhost')) {
-      appUrl = 'https://seoinforce.com';
+    void syncUserToGhlById(user.id).catch((err) => console.warn('GHL contact sync after signup:', err));
+
+    const verificationUrl = buildVerificationUrl(verificationToken);
+
+    emitSignupWorkflow({
+      userId: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      accountType: user.account_type ?? undefined,
+      brandName: user.brand_name,
+      planType: 'free',
+      signupAt: new Date().toISOString(),
+      appBaseUrl: getSiteUrl(),
+      firstAuditUrl: `${getSiteUrl()}/audit/dashboard`,
+      verifyEmailUrl: verificationUrl,
+    });
+
+    const mail = await sendVerificationEmail({
+      to: user.email,
+      fullName: user.full_name,
+      token: verificationToken,
+    });
+
+    if (!mail.sent) {
+      console.error('Verification email not sent:', mail.error);
+      return NextResponse.json({
+        success: true,
+        emailSent: false,
+        message:
+          'Account created, but we could not send the verification email. Use Resend below or contact support.',
+        warning: mail.error,
+        user: { id: user.id, email: user.email },
+      });
     }
-    const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
-      to: email,
-      subject: 'Verify Your SEOInForce Account',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #fbbf24; background: #1f2937; padding: 20px; margin: 0; text-align: center; border-radius: 8px 8px 0 0;">
-            ✉️ Verify Your Email Address
-          </h2>
-          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px;">
-            <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
-              Hi ${fullName || email.split('@')[0]},
-            </p>
-            <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
-              Thank you for creating an account with SEOInForce! Please verify your email address by clicking the button below:
-            </p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${verificationUrl}" style="display: inline-block; background: #fbbf24; color: #1f2937; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
-                Verify Email Address
-              </a>
-            </div>
-            <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-              This link will expire in 24 hours. If you didn't create an account, please ignore this email.
-            </p>
-          </div>
-          <div style="background: #1f2937; padding: 20px; text-align: center; color: #9ca3af; border-radius: 0 0 8px 8px;">
-            <p style="margin: 0;">Best regards,<br><strong>SEOInForce Team</strong></p>
-          </div>
-        </div>
-      `,
-    };
-
-    try {
-      await transporter.sendMail(mailOptions);
-      console.log('Verification email sent to:', email);
-    } catch (emailError) {
-      console.error('Error sending verification email:', emailError);
-      // Don't fail the signup if email fails, but log it
-    }
-
-    // Schedule welcome email (5 minutes delay)
-    // In production, use a proper job queue. For now, we'll use a setTimeout on the server
-    // Note: This is a simple approach. For production, consider using a job queue like Bull, Agenda, etc.
-    setTimeout(async () => {
-      try {
-        // Use production URL for internal API calls (never localhost)
-        let apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com';
-        if (apiUrl.includes('localhost')) {
-          apiUrl = 'https://seoinforce.com';
-        }
-        await fetch(`${apiUrl}/api/emails/welcome`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id }),
-        });
-      } catch (error) {
-        console.error('Error scheduling welcome email:', error);
-      }
-    }, 5 * 60 * 1000); // 5 minutes
 
     return NextResponse.json({
       success: true,
-      message: 'Account created successfully! Please check your email to verify your account.',
-      user: {
-        id: user.id,
-        email: user.email,
-      },
+      emailSent: true,
+      message: 'Account created! Check your inbox (and spam) for the verification link.',
+      user: { id: user.id, email: user.email },
     });
   } catch (error) {
     console.error('Signup error:', error);

@@ -164,7 +164,13 @@ export default function HomePage() {
               <li><a href="/faq" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-300 transition-all duration-300 relative group focus:outline-none hover:drop-shadow-[0_0_8px_rgba(250,204,21,0.3)]"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />FAQ</a></li>
               <li><a href="/support" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-300 transition-all duration-300 relative group focus:outline-none hover:drop-shadow-[0_0_8px_rgba(250,204,21,0.3)]"><span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />Support</a></li>
               <li>
-                <a href="/sign-in" className="ml-8 px-6 py-2.5 rounded-lg font-bold bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black hover:shadow-[0_8px_25px_-5px_rgba(250,204,21,0.5)] hover:scale-105 shadow-[0_8px_20px_-6px_rgba(250,204,21,0.3)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400/60 focus:ring-offset-2 focus:ring-offset-black border border-yellow-400/50">
+                <NextLink href="/audit/dashboard" className="px-4 py-2 text-[#C0C0C0] hover:text-yellow-300 transition-all duration-300 relative group focus:outline-none hover:drop-shadow-[0_0_8px_rgba(250,204,21,0.3)]">
+                  <span className="absolute left-0 -bottom-0.5 w-full h-0.5 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                  Dashboard
+                </NextLink>
+              </li>
+              <li>
+                <a href="/sign-in" className="ml-4 px-6 py-2.5 rounded-lg font-bold bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-500 text-black hover:shadow-[0_8px_25px_-5px_rgba(250,204,21,0.5)] hover:scale-105 shadow-[0_8px_20px_-6px_rgba(250,204,21,0.3)] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-yellow-400/60 focus:ring-offset-2 focus:ring-offset-black border border-yellow-400/50">
                   Sign In
                 </a>
               </li>
@@ -183,7 +189,8 @@ export default function HomePage() {
               <a href="#" className="block py-2 px-3 text-[#C0C0C0] hover:text-yellow-400 transition">Blog</a>
               <a href="#" className="block py-2 px-3 text-[#C0C0C0] hover:text-yellow-400 transition">Support</a>
               <a href="#faq" className="block py-2 px-3 text-[#C0C0C0] hover:text-yellow-400 transition">FAQ</a>
-              <a href="#" className="block py-2 px-3 text-yellow-400 font-bold bg-yellow-500/10 rounded transition">Sign In</a>
+              <NextLink href="/audit/dashboard" className="block py-2 px-3 text-[#C0C0C0] hover:text-yellow-400 transition">Dashboard</NextLink>
+              <a href="/sign-in" className="block py-2 px-3 text-yellow-400 font-bold bg-yellow-500/10 rounded transition">Sign In</a>
             </div>
           )}
         </Container>

@@ -1,45 +1,24 @@
-import { MetadataRoute } from 'next'
+import { MetadataRoute } from 'next';
+import { getSiteUrl } from '@/lib/site-url';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://seoinforce.com'
-  const currentDate = new Date()
+  const baseUrl = getSiteUrl();
+  const currentDate = new Date();
 
-  return [
-    {
-      url: baseUrl,
-      lastModified: currentDate,
-      changeFrequency: 'daily',
-      priority: 1.0,
-    },
-    {
-      url: `${baseUrl}/#features`,
-      lastModified: currentDate,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/#pricing`,
-      lastModified: currentDate,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/#services`,
-      lastModified: currentDate,
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/#faq`,
-      lastModified: currentDate,
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/audit/dashboard`,
-      lastModified: currentDate,
-      changeFrequency: 'daily',
-      priority: 0.9,
-    },
-  ]
+  const paths = [
+    '',
+    '/features',
+    '/pricing',
+    '/faq',
+    '/blog',
+    '/products',
+    '/support',
+  ];
+
+  return paths.map((path, i) => ({
+    url: `${baseUrl}${path}`,
+    lastModified: currentDate,
+    changeFrequency: i === 0 ? 'daily' : 'weekly',
+    priority: i === 0 ? 1 : 0.85,
+  }));
 }

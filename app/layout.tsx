@@ -2,11 +2,21 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
+import { getSiteUrl } from '@/lib/site-url';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const siteUrl = getSiteUrl();
+
+const sameAsFromEnv = [
+  process.env.NEXT_PUBLIC_SOCIAL_TWITTER,
+  process.env.NEXT_PUBLIC_SOCIAL_LINKEDIN,
+  process.env.NEXT_PUBLIC_SOCIAL_GITHUB,
+].filter((u): u is string => typeof u === 'string' && u.startsWith('http'));
+const sameAs = sameAsFromEnv.length > 0 ? sameAsFromEnv : ['https://twitter.com/seoinforce'];
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://seoinforce.com'),
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'SEOInForce – SEO Audit Tool & White-Label SEO Services UK',
     template: '%s | SEOInForce',
@@ -42,7 +52,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_GB',
-    url: 'https://seoinforce.com',
+    url: siteUrl,
     title: 'SEOInForce – SEO Audit Tool & White-Label SEO Services UK',
     description:
       'Take command of search with AI-powered SEO audits, competitor analysis, and white-label SEO reports. Get results fast – or let our Task Force do it for you.',
@@ -50,9 +60,9 @@ export const metadata: Metadata = {
     images: [
       {
         url: '/logo.svg',
-        width: 1200,
-        height: 630,
-        alt: 'SEOInForce - Premium SEO Tools and Services',
+        width: 500,
+        height: 500,
+        alt: 'SEOInForce — SEO audits and white-label reports',
       },
     ],
   },
@@ -76,11 +86,10 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: 'https://seoinforce.com',
+    canonical: siteUrl,
   },
   verification: {
     google: 'GXVs-eMv05iHfDzBdM6yn6G48s1anIZixaeZHaeWHw0',
-    yandex: 'your-yandex-verification-code',
   },
 };
 
@@ -104,23 +113,18 @@ export default function RootLayout({
             '@context': 'https://schema.org',
             '@type': 'LocalBusiness',
             name: 'SEOInForce',
-            url: 'https://seoinforce.com',
-            logo: 'https://seoinforce.com/logo.svg',
-            image: 'https://seoinforce.com/logo.svg',
+            url: siteUrl,
+            logo: `${siteUrl}/logo.svg`,
+            image: `${siteUrl}/logo.svg`,
             areaServed: {
               '@type': 'AdministrativeArea',
               name: 'United Kingdom',
             },
-            sameAs: [
-              'https://twitter.com/',
-              'https://www.linkedin.com/',
-              'https://github.com/'
-            ],
+            sameAs,
             contactPoint: {
               '@type': 'ContactPoint',
               contactType: 'customer support',
-              email: 'contact@seoforce.com',
-              telephone: '+1-234-567-890',
+              email: 'contact@seoinforce.com',
               availableLanguage: ['English'],
             },
           })}
@@ -139,7 +143,7 @@ export default function RootLayout({
               highPrice: '499',
               priceCurrency: 'GBP',
             },
-            url: 'https://seoinforce.com',
+            url: siteUrl,
             description:
               'SEO audit tool (UK), competitor analysis software, rank tracking, and white‑label SEO reports for agencies.',
             publisher: {
