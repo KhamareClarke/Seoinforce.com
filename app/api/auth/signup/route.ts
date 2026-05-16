@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/client';
 import { hashPassword, generateVerificationToken } from '@/lib/auth';
 import nodemailer from 'nodemailer';
+import { syncUserToGhlById } from '@/lib/ghl/sync-user';
+import { getSiteUrl } from '@/lib/site-url';
+import { emitSignupWorkflow } from '@/lib/ghl/workflow-triggers';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,6 +93,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    void syncUserToGhlById(user.id).catch((err) => console.warn('GHL contact sync after signup:', err));
+
     // Send verification email
     // Always use production URL in emails (never localhost)
     let appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com';
@@ -98,6 +103,19 @@ export async function POST(request: NextRequest) {
       appUrl = 'https://seoinforce.com';
     }
     const verificationUrl = `${appUrl}/verify-email?token=${verificationToken}`;
+
+    emitSignupWorkflow({
+      userId: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      accountType: user.account_type ?? undefined,
+      brandName: user.brand_name,
+      planType: 'free',
+      signupAt: new Date().toISOString(),
+      appBaseUrl: getSiteUrl(),
+      firstAuditUrl: `${getSiteUrl()}/audit/dashboard`,
+      verifyEmailUrl: verificationUrl,
+    });
 
     const mailOptions = {
       from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',

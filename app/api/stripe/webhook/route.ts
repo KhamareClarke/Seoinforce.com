@@ -3,6 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/client';
 import Stripe from 'stripe';
 import { sendPackagePurchaseEmail } from '@/lib/email';
 import { AGENCY_PACKAGES } from '@/lib/agency-packages';
+import { notifySubscriptionChange } from '@/lib/ghl/subscription-notify';
+import { isPaidPlan } from '@/lib/ghl/plan-features';
 
 // Allow more time for Supabase + email so Stripe doesn't get timeout (e.g. Vercel 10s default)
 export const maxDuration = 25;
@@ -77,6 +79,13 @@ export async function POST(request: NextRequest) {
         }
 
         if (userId && planType) {
+          const { data: beforeUser } = await supabase
+            .from('users')
+            .select('plan_type, email, full_name')
+            .eq('id', userId)
+            .single();
+          const previousPlan = beforeUser?.plan_type || 'free';
+
           // Update user's plan
           let apiCredits = 100;
           if (planType === 'starter') {
@@ -127,7 +136,68 @@ export async function POST(request: NextRequest) {
             }
           } catch (emailError) {
             console.error('Error sending purchase email:', emailError);
-            // Don't fail the webhook if email fails
+          }
+
+          if (beforeUser?.email && !isPaidPlan(previousPlan) && isPaidPlan(planType)) {
+            try {
+              await notifySubscriptionChange({
+                userId,
+                email: beforeUser.email,
+                fullName: beforeUser.full_name,
+                changeType: 'upgraded',
+                previousPlan,
+                newPlan: planType,
+              });
+            } catch (e) {
+              console.warn('GHL subscription upgraded:', e);
+            }
+          }
+        }
+        break;
+      }
+
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.billing_reason !== 'subscription_cycle') {
+          break;
+        }
+        const subRaw = invoice.subscription;
+        const subId = typeof subRaw === 'string' ? subRaw : subRaw?.id;
+        if (!subId) break;
+
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('stripe_subscription_id', subId)
+          .maybeSingle();
+
+        const userId = prof?.id;
+        if (!userId) break;
+
+        const { data: u } = await supabase
+          .from('users')
+          .select('email, full_name, plan_type')
+          .eq('id', userId)
+          .single();
+
+        const nextBilling =
+          invoice.period_end != null
+            ? new Date(invoice.period_end * 1000).toLocaleDateString('en-GB')
+            : '—';
+
+        if (u?.email) {
+          try {
+            await notifySubscriptionChange({
+              userId,
+              email: u.email,
+              fullName: u.full_name,
+              changeType: 'renewed',
+              previousPlan: u.plan_type || 'free',
+              newPlan: u.plan_type || 'free',
+              nextBillingDate: nextBilling,
+            });
+          } catch (e) {
+            console.warn('invoice.paid GHL subscription renewed:', e);
           }
         }
         break;
@@ -177,7 +247,15 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (profile) {
+          const { data: u } = await supabase
+            .from('users')
+            .select('email, full_name, plan_type')
+            .eq('id', profile.id)
+            .single();
+
           if (event.type === 'customer.subscription.deleted') {
+            const previousPlan = u?.plan_type || 'free';
+
             await supabase
               .from('users')
               .update({
@@ -195,6 +273,21 @@ export async function POST(request: NextRequest) {
                 updated_at: new Date().toISOString(),
               })
               .eq('id', profile.id);
+
+            if (u?.email && isPaidPlan(previousPlan)) {
+              try {
+                await notifySubscriptionChange({
+                  userId: profile.id,
+                  email: u.email,
+                  fullName: u.full_name,
+                  changeType: 'downgraded',
+                  previousPlan,
+                  newPlan: 'free',
+                });
+              } catch (e) {
+                console.warn('GHL subscription downgraded:', e);
+              }
+            }
           }
         }
         break;

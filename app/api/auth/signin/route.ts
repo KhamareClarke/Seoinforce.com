@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/client';
 import { verifyPassword, generateToken, setAuthCookie } from '@/lib/auth';
+import { touchUserLastActive } from '@/lib/user-activity';
+import { syncUserToGhlById } from '@/lib/ghl/sync-user';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +84,15 @@ export async function POST(request: NextRequest) {
     });
 
     setAuthCookie(token, response);
+
+    void (async () => {
+      try {
+        await touchUserLastActive(user.id);
+        void syncUserToGhlById(user.id);
+      } catch (e) {
+        console.warn('activity/ghl sync on sign-in:', e);
+      }
+    })();
 
     return response;
   } catch (error) {

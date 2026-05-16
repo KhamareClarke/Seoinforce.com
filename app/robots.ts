@@ -1,6 +1,8 @@
-import { MetadataRoute } from 'next'
+import { MetadataRoute } from 'next';
+import { getSiteUrl } from '@/lib/site-url';
 
 export default function robots(): MetadataRoute.Robots {
+  const base = getSiteUrl();
   return {
     rules: [
       {
@@ -19,6 +21,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/admin/', '/private/'],
       },
     ],
-    sitemap: 'https://seoinforce.com/sitemap.xml',
-  }
+    sitemap: `${base}/sitemap.xml`,
+  };
 }

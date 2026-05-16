@@ -9,6 +9,14 @@ import { Input } from "@/components/ui/input";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { getCurrentUserClient, signOutClient } from "@/lib/auth/client";
 import PricingModal from "@/components/PricingModal";
+import { CompetitorIntelligenceSummary } from "@/components/audit/CompetitorIntelligenceSummary";
+import { CompetitorIntelligencePanel } from "@/components/audit/CompetitorIntelligencePanel";
+import { ContentOptimizationChecklist } from "@/components/audit/ContentOptimizationChecklist";
+import { ContentGapsPanel } from "@/components/audit/ContentGapsPanel";
+import { RankAdvancedPanel } from "@/components/audit/RankAdvancedPanel";
+import { LinkOpportunitiesPanel } from "@/components/audit/LinkOpportunitiesPanel";
+import { TechnicalDeepPanel } from "@/components/audit/TechnicalDeepPanel";
+import type { ContentOptimizeResult } from "@/lib/seo/content-optimizer";
 
 function AnimatedNumber({ value, duration = 1000, suffix = "" }: { value: number; duration?: number; suffix?: string }) {
   const [display, setDisplay] = React.useState(0);
@@ -364,6 +372,10 @@ export default function AuditDashboard() {
   const [editKeywordText, setEditKeywordText] = useState("");
   const [backlinkData, setBacklinkData] = useState<any>(null);
   const [backlinkHistory, setBacklinkHistory] = useState<any[]>([]);
+  const [contentOptimizeUrl, setContentOptimizeUrl] = useState("");
+  const [contentOptimizeKeyword, setContentOptimizeKeyword] = useState("");
+  const [contentOptimizeResult, setContentOptimizeResult] = useState<ContentOptimizeResult | null>(null);
+  const [contentOptimizeLoading, setContentOptimizeLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [auditCount, setAuditCount] = useState(0);
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -785,6 +797,31 @@ export default function AuditDashboard() {
       setError('Failed to add competitor');
     } finally {
       setAddingCompetitor(false);
+    }
+  };
+
+  const handleContentOptimize = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const url = contentOptimizeUrl.trim() || (audit?.domain ? `https://${audit.domain}` : "");
+    const keyword = contentOptimizeKeyword.trim();
+    if (!url || !keyword) return;
+
+    setContentOptimizeLoading(true);
+    setContentOptimizeResult(null);
+    try {
+      const res = await fetch("/api/content/optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ url, targetKeyword: keyword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Optimization failed");
+      setContentOptimizeResult(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Content optimization failed");
+    } finally {
+      setContentOptimizeLoading(false);
     }
   };
 
@@ -1414,6 +1451,13 @@ export default function AuditDashboard() {
                 <Mail className="h-3 w-3" />
                 <span className="truncate">{userProfile?.email || 'No email'}</span>
               </div>
+              <Link
+                href="/audit/notifications"
+                className="hidden sm:inline-flex items-center gap-1 text-xs text-yellow-400/90 hover:text-yellow-400"
+              >
+                <MessageCircle className="h-3 w-3" />
+                SMS alerts
+              </Link>
               {currentProject && (
                 <div className="flex items-center gap-1">
                   <Globe className="h-3 w-3" />
@@ -2216,6 +2260,8 @@ export default function AuditDashboard() {
                         <VitalsTrendGraph history={vitalsHistory} metric="lcp" />
                       </div>
                     )}
+
+                    <TechnicalDeepPanel deep={auditData.technical_deep} />
                   </section>
 
                   <section id="onpage" className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 mb-12 rounded-3xl bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 border-yellow-400/30 shadow-2xl backdrop-blur-xl">
@@ -2379,11 +2425,56 @@ export default function AuditDashboard() {
                       </div>
                     )}
 
+                    <div className="mb-8 bg-black/50 p-6 rounded-2xl border border-yellow-400/20">
+                      <h3 className="text-xl font-bold text-[#FFD700] mb-2">Deep content checklist</h3>
+                      <p className="text-sm text-[#C0C0C0] mb-4">
+                        Analyze any page URL against a target keyword — 16-point optimization checklist.
+                      </p>
+                      <form onSubmit={handleContentOptimize} className="flex flex-col sm:flex-row gap-2 mb-4">
+                        <Input
+                          type="url"
+                          placeholder="Page URL (https://...)"
+                          value={contentOptimizeUrl}
+                          onChange={(e) => setContentOptimizeUrl(e.target.value)}
+                          className="flex-1 bg-black/50 border-yellow-400/30 text-white"
+                        />
+                        <Input
+                          type="text"
+                          placeholder="Target keyword"
+                          value={contentOptimizeKeyword}
+                          onChange={(e) => setContentOptimizeKeyword(e.target.value)}
+                          className="sm:w-48 bg-black/50 border-yellow-400/30 text-white"
+                        />
+                        <Button
+                          type="submit"
+                          disabled={contentOptimizeLoading}
+                          className="bg-yellow-400 text-black hover:bg-yellow-500 font-semibold"
+                        >
+                          {contentOptimizeLoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Analyze"
+                          )}
+                        </Button>
+                      </form>
+                      {contentOptimizeResult?.checklist && (
+                        <>
+                          <ContentOptimizationChecklist
+                            checklist={contentOptimizeResult.checklist}
+                            url={contentOptimizeResult.url}
+                            targetKeyword={contentOptimizeResult.targetKeyword}
+                          />
+                          <ContentGapsPanel result={contentOptimizeResult} />
+                        </>
+                      )}
+                    </div>
+
                     {(!auditData.content?.keyword_density || auditData.content.keyword_density.length === 0) && 
-                     (!auditData.content?.suggestions || auditData.content.suggestions.length === 0) && (
+                     (!auditData.content?.suggestions || auditData.content.suggestions.length === 0) &&
+                     !contentOptimizeResult && (
                       <div className="text-center py-12 bg-black/50 rounded-2xl border border-yellow-400/20">
                         <FileText className="h-12 w-12 text-[#C0C0C0] mx-auto mb-4 opacity-50" />
-                        <p className="text-[#C0C0C0]">No keywords or suggestions found in content analysis.</p>
+                        <p className="text-[#C0C0C0]">Run the checklist above or complete an audit for keyword suggestions.</p>
                       </div>
                     )}
                   </section>
@@ -2490,6 +2581,8 @@ export default function AuditDashboard() {
                           No keywords tracked yet. Add keywords to enable competitor overlap analysis.
                         </div>
                       )}
+
+                      <RankAdvancedPanel projectId={currentProject.id} />
                     </section>
                   )}
 
@@ -2616,10 +2709,19 @@ export default function AuditDashboard() {
                                         <div className="text-xs text-yellow-400 mb-1">Quick wins:</div>
                                         <div className="text-xs text-[#C0C0C0]">
                                           {comp.missingKeywords.slice(0, 3).map((kw: string, i: number) => (
-                                            <span key={i}>'{kw}'{i < 2 ? ', ' : ''}</span>
+                                            <span key={i}>&apos;{kw}&apos;{i < 2 ? ', ' : ''}</span>
                                           ))}
                                         </div>
                                       </div>
+                                    )}
+                                    {comp.analysis && (
+                                      <>
+                                        <CompetitorIntelligenceSummary analysis={comp.analysis} />
+                                        <CompetitorIntelligencePanel
+                                          analysis={comp.analysis}
+                                          competitorDomain={comp.domain}
+                                        />
+                                      </>
                                     )}
                                   </>
                                 )}
@@ -2874,6 +2976,15 @@ export default function AuditDashboard() {
                             ))}
                           </div>
                         </div>
+                      )}
+
+                      {currentProject && (
+                        <LinkOpportunitiesPanel
+                          projectId={currentProject.id}
+                          competitorDomain={
+                            competitorData?.competitors?.[0]?.domain as string | undefined
+                          }
+                        />
                       )}
                     </section>
                   )}

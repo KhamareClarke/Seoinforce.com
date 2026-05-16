@@ -33,10 +33,12 @@ export async function updateSession(request: NextRequest) {
     '/support',
   ];
   
-  const isPublicPath = publicPaths.some(path => 
-    request.nextUrl.pathname === path || 
-    request.nextUrl.pathname.startsWith(path)
-  );
+  const isPublicPath = publicPaths.some((path) => {
+    if (path === '/') return request.nextUrl.pathname === '/';
+    return (
+      request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(`${path}/`)
+    );
+  });
 
   // Protect audit, admin, and create-project routes
   if (

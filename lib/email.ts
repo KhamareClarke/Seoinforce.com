@@ -1,14 +1,25 @@
-import nodemailer from 'nodemailer';
+import {
+  createSmtpTransporter,
+  getMailFrom,
+  requireAuditInbox,
+  requireBookingInbox,
+} from './smtp';
 
-// Email configuration - Using SMTP (Gmail)
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
-    pass: process.env.EMAIL_PASS || '' // Gmail App Password
+function getTransporter() {
+  const t = createSmtpTransporter();
+  if (!t) {
+    throw new Error('SMTP not configured. Set SMTP_USER+SMTP_PASS or EMAIL_USER+EMAIL_PASS.');
   }
-});
+  return t;
+}
 
+function defaultFrom(): string {
+  const f = getMailFrom();
+  if (!f) {
+    throw new Error('Configure SMTP (user+pass) so a From address can be set.');
+  }
+  return f;
+}
 // Helper function to get app URL (no localhost in production emails)
 function getAppUrl(): string {
   const url = process.env.NEXT_PUBLIC_APP_URL || 'https://seoinforce.com';
@@ -31,8 +42,8 @@ export async function sendAuditEmail(data: AuditEmailData) {
   const { name, email, phone, domain, timestamp } = data;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
-    to: process.env.AUDIT_EMAIL || 'khamareclarke@gmail.com',
+    from: defaultFrom(),
+    to: requireAuditInbox(),
     subject: `New SEO Audit Request - ${domain}`,
     text: `
 New SEO Audit Request Received
@@ -103,7 +114,7 @@ SEOInForce Assistant
   };
 
   try {
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getTransporter().sendMail(mailOptions);
     console.log('Audit email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -116,8 +127,8 @@ export async function sendBookingEmail(data: Omit<AuditEmailData, 'domain'>) {
   const { name, email, phone, timestamp } = data;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
-    to: process.env.BOOKING_EMAIL || 'khamareclarke@gmail.com',
+    from: defaultFrom(),
+    to: requireBookingInbox(),
     subject: `New Consultation Booking - ${name}`,
     text: `
 New Consultation Booking Received
@@ -183,7 +194,7 @@ SEOInForce Assistant
   };
 
   try {
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getTransporter().sendMail(mailOptions);
     console.log('Booking email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -198,7 +209,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
   const dashboardUrl = `${appUrl}/audit/dashboard`;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    from: defaultFrom(),
     to: email,
     subject: 'Welcome to SEOInForce! 🚀',
     html: `
@@ -244,7 +255,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
   };
 
   try {
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getTransporter().sendMail(mailOptions);
     console.log('Welcome email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -259,7 +270,7 @@ export async function sendProjectCreatedEmail(email: string, name: string, proje
   const dashboardUrl = `${appUrl}/audit/dashboard`;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    from: defaultFrom(),
     to: email,
     subject: `Project Created: ${projectName}`,
     html: `
@@ -298,7 +309,7 @@ export async function sendProjectCreatedEmail(email: string, name: string, proje
   };
 
   try {
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getTransporter().sendMail(mailOptions);
     console.log('Project created email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -313,7 +324,7 @@ export async function sendAuditCompletedEmail(email: string, name: string, domai
   const dashboardUrl = `${appUrl}/audit/dashboard`;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    from: defaultFrom(),
     to: email,
     subject: `SEO Audit Complete: ${domain} - Score: ${overallScore}/100`,
     html: `
@@ -352,7 +363,7 @@ export async function sendAuditCompletedEmail(email: string, name: string, domai
   };
 
   try {
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getTransporter().sendMail(mailOptions);
     console.log('Audit completed email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -367,7 +378,7 @@ export async function sendReportDownloadedEmail(email: string, name: string, dom
   const dashboardUrl = `${appUrl}/audit/dashboard`;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    from: defaultFrom(),
     to: email,
     subject: `SEO Report Downloaded: ${domain}`,
     html: `
@@ -405,7 +416,7 @@ export async function sendReportDownloadedEmail(email: string, name: string, dom
   };
 
   try {
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getTransporter().sendMail(mailOptions);
     console.log('Report downloaded email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -428,7 +439,7 @@ export async function sendReportViaEmail(
   const safeFilename = `SEO-Report-${domain.replace(/[^a-z0-9.-]/gi, '-')}.pdf`;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    from: defaultFrom(),
     to: email,
     subject: `Your SEO Report: ${domain}`,
     html: `
@@ -475,7 +486,7 @@ export async function sendReportViaEmail(
   };
 
   try {
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getTransporter().sendMail(mailOptions);
     console.log('Report email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -502,7 +513,7 @@ export async function sendPackagePurchaseEmail(email: string, name: string, plan
   };
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    from: defaultFrom(),
     to: email,
     subject: `Welcome to ${planNames[planType] || planType}! 🎉`,
     html: `
@@ -547,7 +558,7 @@ export async function sendPackagePurchaseEmail(email: string, name: string, plan
   };
 
   try {
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getTransporter().sendMail(mailOptions);
     console.log('Package purchase email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {
@@ -562,7 +573,7 @@ export async function sendAuditExpiredEmail(email: string, name: string) {
   const pricingUrl = `${appUrl}#pricing`;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER || 'khamareclarke@gmail.com',
+    from: defaultFrom(),
     to: email,
     subject: 'Upgrade Your Plan to Continue Running Audits',
     html: `
@@ -607,7 +618,7 @@ export async function sendAuditExpiredEmail(email: string, name: string) {
   };
 
   try {
-    const result = await transporter.sendMail(mailOptions);
+    const result = await getTransporter().sendMail(mailOptions);
     console.log('Audit expired email sent successfully:', result.messageId);
     return { success: true, messageId: result.messageId };
   } catch (error) {

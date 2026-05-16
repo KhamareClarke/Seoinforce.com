@@ -54,20 +54,13 @@ export default function CreateProjectPage() {
         body: JSON.stringify({
           domain: normalizedDomain,
           name: projectName || normalizedDomain,
+          companyName: companyName.trim() || undefined,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to create project');
-      }
-
-      // Update user profile with company name if provided
-      if (companyName) {
-        await supabase
-          .from('profiles')
-          .update({ company_name: companyName })
-          .eq('id', user.id);
       }
 
       // Redirect to dashboard
