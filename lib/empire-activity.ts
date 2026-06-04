@@ -58,6 +58,29 @@ function hubUrl(): string | null {
   return raw.replace(/\/$/, '');
 }
 
+/**
+ * Send a request and follow up to 3 cross-origin redirects WITHOUT dropping
+ * the Authorization header (standard fetch strips it on cross-origin 3xx).
+ */
+async function fetchPreservingAuth(
+  url: string,
+  init: RequestInit,
+  maxHops = 3
+): Promise<Response> {
+  let current = url;
+  for (let hop = 0; hop <= maxHops; hop += 1) {
+    const res = await fetch(current, { ...init, redirect: 'manual' });
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get('location');
+      if (!loc) return res;
+      current = new URL(loc, current).toString();
+      continue;
+    }
+    return res;
+  }
+  throw new Error(`Too many redirects (>${maxHops}) from ${url}`);
+}
+
 export async function emitEmpireActivity(input: EmpireActivityInput): Promise<void> {
   try {
     const url = hubUrl();
@@ -81,7 +104,7 @@ export async function emitEmpireActivity(input: EmpireActivityInput): Promise<vo
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
 
-    await fetch(`${url}/api/empire/activity/ingest`, {
+    await fetchPreservingAuth(`${url}/api/empire/activity/ingest`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

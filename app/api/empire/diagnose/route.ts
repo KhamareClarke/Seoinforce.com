@@ -61,20 +61,37 @@ export async function GET(_request: NextRequest) {
   let responseText = '';
   let error: string | null = null;
   let finalUrl = target;
+  let hops = 0;
   try {
-    const res = await fetch(target, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${secret}`,
-      },
-      body: JSON.stringify(body),
-      cache: 'no-store',
-      redirect: 'follow',
-    });
-    status = res.status;
-    finalUrl = res.url || target;
-    responseText = (await res.text()).slice(0, 2000);
+    let current = target;
+    for (let i = 0; i < 4; i += 1) {
+      const res = await fetch(current, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify(body),
+        cache: 'no-store',
+        redirect: 'manual',
+      });
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get('location');
+        if (!loc) {
+          status = res.status;
+          finalUrl = current;
+          responseText = '(redirect with no Location header)';
+          break;
+        }
+        hops += 1;
+        current = new URL(loc, current).toString();
+        continue;
+      }
+      status = res.status;
+      finalUrl = current;
+      responseText = (await res.text()).slice(0, 2000);
+      break;
+    }
   } catch (e) {
     error = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
   }
@@ -84,12 +101,14 @@ export async function GET(_request: NextRequest) {
   return NextResponse.json({
     ok,
     env,
-    request: { target, finalUrl, body },
+    request: { target, finalUrl, hops, body },
     response: { status, body: responseText, error },
     hint: ok
       ? 'Test event accepted by the hub. Open /dashboard/empire/activity on khamareclarke.com to see it.'
       : status === 401
-      ? 'Hub rejected the secret. Ensure EMPIRE_INGEST_SECRET is identical on both Vercel projects.'
+      ? hops > 0
+        ? 'Hub rejected the secret AFTER a redirect. Set EMPIRE_HUB_URL=https://www.khamareclarke.com (with www) so no redirect happens.'
+        : 'Hub rejected the secret. Ensure EMPIRE_INGEST_SECRET is identical on both Vercel projects.'
       : status === 0
       ? 'Could not reach the hub at all. Check EMPIRE_HUB_URL value (use https://www.khamareclarke.com).'
       : 'Hub returned a non-2xx response. See response.body for details.',
