@@ -5,6 +5,7 @@ import { sendPackagePurchaseEmail } from '@/lib/email';
 import { AGENCY_PACKAGES } from '@/lib/agency-packages';
 import { notifySubscriptionChange } from '@/lib/ghl/subscription-notify';
 import { isPaidPlan } from '@/lib/ghl/plan-features';
+import { emitEmpireActivity } from '@/lib/empire-activity';
 
 // Allow more time for Supabase + email so Stripe doesn't get timeout (e.g. Vercel 10s default)
 export const maxDuration = 25;
@@ -152,6 +153,21 @@ export async function POST(request: NextRequest) {
               console.warn('GHL subscription upgraded:', e);
             }
           }
+
+          void emitEmpireActivity({
+            event_type: 'payment_succeeded',
+            user_email: beforeUser?.email || undefined,
+            user_id: userId,
+            user_name: beforeUser?.full_name || undefined,
+            message: `Checkout completed: ${planType}`,
+            metadata: {
+              plan: planType,
+              previous_plan: previousPlan,
+              amount_total: session.amount_total,
+              currency: session.currency,
+              stripe_session: session.id,
+            },
+          });
         }
         break;
       }
@@ -201,6 +217,19 @@ export async function POST(request: NextRequest) {
           } catch (e) {
             console.warn('invoice.paid GHL subscription renewed:', e);
           }
+
+          void emitEmpireActivity({
+            event_type: 'subscription_created',
+            user_email: u.email,
+            user_id: userId,
+            user_name: u.full_name || undefined,
+            message: 'Subscription renewed',
+            metadata: {
+              plan: u.plan_type || 'free',
+              next_billing_date: nextBilling,
+              stripe_subscription: subId,
+            },
+          });
         }
         break;
       }
@@ -290,6 +319,18 @@ export async function POST(request: NextRequest) {
                 console.warn('GHL subscription downgraded:', e);
               }
             }
+
+            void emitEmpireActivity({
+              event_type: 'subscription_cancelled',
+              user_email: u?.email || undefined,
+              user_id: profile.id,
+              user_name: u?.full_name || undefined,
+              message: 'Subscription cancelled',
+              metadata: {
+                previous_plan: u?.plan_type || 'free',
+                stripe_subscription: subscription.id,
+              },
+            });
           }
         }
         break;

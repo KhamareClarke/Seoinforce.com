@@ -5,6 +5,7 @@ import { syncUserToGhlById } from '@/lib/ghl/sync-user';
 import { getSiteUrl } from '@/lib/site-url';
 import { emitSignupWorkflow } from '@/lib/ghl/workflow-triggers';
 import { buildVerificationUrl, sendVerificationEmail } from '@/lib/auth-email';
+import { emitEmpireActivity } from '@/lib/empire-activity';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingUser) {
+      void emitEmpireActivity({
+        event_type: 'signup_failed',
+        status: 'failed',
+        user_email: email,
+        message: 'Email already registered',
+        request,
+      });
       return NextResponse.json(
         { error: 'This email is already registered. Please sign in instead.' },
         { status: 400 }
@@ -78,6 +86,18 @@ export async function POST(request: NextRequest) {
     }
 
     void syncUserToGhlById(user.id).catch((err) => console.warn('GHL contact sync after signup:', err));
+
+    void emitEmpireActivity({
+      event_type: 'signup',
+      user_email: user.email,
+      user_id: user.id,
+      user_name: user.full_name || undefined,
+      metadata: {
+        account_type: user.account_type || 'personal',
+        brand_name: user.brand_name || null,
+      },
+      request,
+    });
 
     const verificationUrl = buildVerificationUrl(verificationToken);
 

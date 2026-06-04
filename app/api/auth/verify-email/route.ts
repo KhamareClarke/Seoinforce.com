@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/client';
+import { emitEmpireActivity } from '@/lib/empire-activity';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,7 +71,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Success
+    void emitEmpireActivity({
+      event_type: 'verify_email',
+      user_email: user.email,
+      user_id: user.id,
+      message: 'Email verified',
+      request,
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Your email has been verified successfully!',

@@ -12,6 +12,7 @@ import { sendSmsForUserEvent } from '@/lib/ghl/sms';
 import { syncUserToGhlById } from '@/lib/ghl/sync-user';
 import { touchUserLastActive } from '@/lib/user-activity';
 import { emitAuditCompletedWorkflow } from '@/lib/ghl/workflow-triggers';
+import { emitEmpireActivity } from '@/lib/empire-activity';
 
 export async function POST(request: NextRequest) {
   let user: User | null = null;
@@ -272,7 +273,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create audit' }, { status: 500 });
     }
 
-    // Run audit in background (for production, use a queue system)
+    void emitEmpireActivity({
+      event_type: 'audit_started',
+      user_email: user.email,
+      user_id: user.id,
+      user_name: user.full_name || undefined,
+      message: `Audit started for ${domain}`,
+      metadata: { audit_id: audit.id, domain, project_id: projectId || null },
+      request,
+    });
+
     const auditEngine = new SEOAuditEngine(domain);
     
     try {
@@ -644,18 +654,47 @@ export async function POST(request: NextRequest) {
         // Don't fail the audit if API usage logging fails
       }
 
+      void emitEmpireActivity({
+        event_type: 'audit_completed',
+        user_email: user.email,
+        user_id: user.id,
+        user_name: user.full_name || undefined,
+        message: `Audit completed for ${domain} (score ${result.overall_score ?? 0})`,
+        metadata: {
+          audit_id: audit.id,
+          domain,
+          overall_score: result.overall_score ?? 0,
+          issues: result.issues?.length ?? 0,
+        },
+        request,
+      });
+
       return NextResponse.json({
         audit_id: audit.id,
         result,
       });
     } catch (error) {
-      // Update audit status to failed
       await supabase
         .from('audits')
         .update({
           status: 'failed',
         })
         .eq('id', audit.id);
+
+      void emitEmpireActivity({
+        event_type: 'audit_failed',
+        status: 'failed',
+        user_email: user.email,
+        user_id: user.id,
+        user_name: user.full_name || undefined,
+        message: `Audit failed for ${domain}`,
+        metadata: {
+          audit_id: audit.id,
+          domain,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        request,
+      });
 
       // Log error
       await logError({

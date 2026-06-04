@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/client';
 import { verifyPassword, generateToken, setAuthCookie } from '@/lib/auth';
 import { touchUserLastActive } from '@/lib/user-activity';
 import { syncUserToGhlById } from '@/lib/ghl/sync-user';
+import { emitEmpireActivity } from '@/lib/empire-activity';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +72,13 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError || !user) {
+      void emitEmpireActivity({
+        event_type: 'signin_failed',
+        status: 'failed',
+        user_email: email,
+        message: 'No account found for email',
+        request,
+      });
       if (redirect) return signInErrorRedirect(request, 'invalid_credentials');
       return NextResponse.json(
         { error: 'Invalid email or password' },
@@ -79,6 +87,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (user.is_banned) {
+      void emitEmpireActivity({
+        event_type: 'signin_failed',
+        status: 'failed',
+        user_email: email,
+        user_id: user.id,
+        message: 'Account banned',
+        request,
+      });
       if (redirect) return signInErrorRedirect(request, 'banned');
       return NextResponse.json(
         { error: 'Your account has been banned. Please contact support.' },
@@ -87,6 +103,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user.email_verified) {
+      void emitEmpireActivity({
+        event_type: 'signin_failed',
+        status: 'failed',
+        user_email: email,
+        user_id: user.id,
+        message: 'Email not verified',
+        request,
+      });
       if (redirect) return signInErrorRedirect(request, 'email_unverified');
       return NextResponse.json(
         {
@@ -99,6 +123,14 @@ export async function POST(request: NextRequest) {
 
     const isValidPassword = await verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
+      void emitEmpireActivity({
+        event_type: 'signin_failed',
+        status: 'failed',
+        user_email: email,
+        user_id: user.id,
+        message: 'Wrong password',
+        request,
+      });
       if (redirect) return signInErrorRedirect(request, 'invalid_credentials');
       return NextResponse.json(
         { error: 'Invalid email or password' },
@@ -131,6 +163,19 @@ export async function POST(request: NextRequest) {
         console.warn('activity/ghl sync on sign-in:', e);
       }
     })();
+
+    void emitEmpireActivity({
+      event_type: 'signin',
+      user_email: user.email,
+      user_id: user.id,
+      user_name: user.full_name || undefined,
+      metadata: {
+        account_type: user.account_type || 'personal',
+        agency_id: user.agency_id || null,
+        redirectTo,
+      },
+      request,
+    });
 
     if (redirect) {
       const dest = new URL(redirectTo, request.url);

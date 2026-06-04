@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/client';
 import { getCurrentUser } from '@/lib/auth';
 import { sendProjectCreatedEmail } from '@/lib/email';
 import { syncUserToGhlById } from '@/lib/ghl/sync-user';
+import { emitEmpireActivity } from '@/lib/empire-activity';
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,7 +59,6 @@ export async function POST(request: NextRequest) {
       void syncUserToGhlById(user.id);
     }
 
-    // Send project creation email
     try {
       await sendProjectCreatedEmail(
         user.email || '',
@@ -68,8 +68,17 @@ export async function POST(request: NextRequest) {
       );
     } catch (emailError) {
       console.error('Error sending project creation email:', emailError);
-      // Don't fail the request if email fails
     }
+
+    void emitEmpireActivity({
+      event_type: 'project_created',
+      user_email: user.email,
+      user_id: user.id,
+      user_name: user.full_name || undefined,
+      message: `Project ${project.name} (${project.domain})`,
+      metadata: { project_id: project.id, domain: project.domain, name: project.name },
+      request,
+    });
 
     return NextResponse.json({ project });
   } catch (error) {
