@@ -19,9 +19,9 @@ export default function HomePage() {
         <main>
           <HeroSection />
           <AuthorityStats />
+          <ServicesSection />
           <ProvenResults />
           <CaseStudies />
-          <ServicesSection />
           <PricingSection />
           <FAQSection />
           <FinalCTA />

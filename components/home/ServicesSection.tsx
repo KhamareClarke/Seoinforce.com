@@ -1,6 +1,6 @@
 'use client';
 import NextLink from 'next/link';
-import { Search, BarChart2, TrendingUp, FileText, Zap, Users } from 'lucide-react';
+import { Search, BarChart2, TrendingUp, FileText, Zap, Users, Link2, MapPin, Sparkles } from 'lucide-react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 const SERVICES = [
@@ -20,6 +20,24 @@ const SERVICES = [
     Icon: TrendingUp,
     title: 'Keyword & Rank Tracking',
     desc: 'Daily UK position monitoring. Know when you climb or when a competitor moves in.',
+    href: '/features',
+  },
+  {
+    Icon: Link2,
+    title: 'Backlink Analysis',
+    desc: 'Discover your full backlink profile, track domain authority, and uncover link-building opportunities your competitors are exploiting.',
+    href: '/features',
+  },
+  {
+    Icon: MapPin,
+    title: 'Local SEO Intelligence',
+    desc: 'GMB presence checks, NAP consistency scoring, and local ranking signals for service-area businesses.',
+    href: '/features',
+  },
+  {
+    Icon: Sparkles,
+    title: 'AI Visibility Score',
+    desc: 'See whether ChatGPT, Gemini, and Perplexity surface your brand. Optimise for the next generation of search.',
     href: '/features',
   },
   {

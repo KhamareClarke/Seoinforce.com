@@ -10,6 +10,7 @@ const SAAS_PLANS = [
     price: '£49',
     period: '/mo',
     desc: 'For small businesses & freelancers',
+    roi: 'Avg. +38% organic traffic in 90 days',
     features: [
       'Track 100 keywords',
       'Monthly SEO audits',
@@ -24,6 +25,7 @@ const SAAS_PLANS = [
     period: '/mo',
     desc: 'For growing teams & agencies',
     recommended: true,
+    roi: 'Avg. +212% organic traffic in 6 months',
     features: [
       'Track 1,000 keywords',
       'Weekly SEO audits',
@@ -38,6 +40,7 @@ const SAAS_PLANS = [
     price: '£499',
     period: '/mo',
     desc: 'For agencies & enterprises',
+    roi: 'Agencies report 5.9x client growth on avg.',
     features: [
       'Unlimited keyword tracking',
       'Daily SEO audits',
@@ -150,6 +153,9 @@ export default function PricingSection() {
                     {plan.price}
                   </span>
                   <span className="font-sans text-[13px] text-white/28 ml-1">/mo</span>
+                  {plan.roi && (
+                    <p className="font-sans text-[11px] text-[#FFD700]/55 mt-2 leading-tight">{plan.roi}</p>
+                  )}
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
