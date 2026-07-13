@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardLeadToGhl } from '@/lib/ghl';
 import { createSmtpTransporter, getAuditInboxEmail, getMailFrom } from '@/lib/smtp';
+import { emitFleetIngest } from '@/lib/fleet-ingest';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,12 @@ export async function POST(request: NextRequest) {
       phone,
       domain,
       timestamp: ts,
+    });
+
+    void emitFleetIngest({
+      event_type: 'lead',
+      summary: `SEO audit request: ${name} (${email}) — ${domain}`,
+      payload: { name, email, phone, domain, source: 'audit_request' },
     });
 
     const transporter = createSmtpTransporter();

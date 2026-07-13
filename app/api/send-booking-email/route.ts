@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardLeadToGhl } from '@/lib/ghl';
 import { createSmtpTransporter, getBookingInboxEmail, getMailFrom } from '@/lib/smtp';
+import { emitFleetIngest } from '@/lib/fleet-ingest';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +27,12 @@ export async function POST(request: NextRequest) {
       email,
       phone,
       timestamp: ts,
+    });
+
+    void emitFleetIngest({
+      event_type: 'lead',
+      summary: `Consultation booking: ${name} (${email})`,
+      payload: { name, email, phone, source: 'consultation_booking' },
     });
 
     const transporter = createSmtpTransporter();
