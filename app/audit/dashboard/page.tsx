@@ -486,25 +486,40 @@ export default function AuditDashboard() {
         });
       }
 
-      // Load audit_count, account_type, brand_name, agency_id from users table
+      // Load audit_count, account_type, brand_name, agency_id, is_admin from users table
       const { data: userData } = await supabase
         .from('users')
-        .select('audit_count, account_type, brand_name, brand_website, agency_id')
+        .select('audit_count, account_type, brand_name, brand_website, agency_id, is_admin')
         .eq('id', user.id)
         .single();
+
+      // Prefer server auth for is_admin (reliable with custom JWT auth)
+      let isAdmin = !!userData?.is_admin;
+      try {
+        const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (typeof meData.user?.is_admin === 'boolean') {
+            isAdmin = meData.user.is_admin;
+          }
+        }
+      } catch {
+        // keep isAdmin from users table if /api/auth/me fails
+      }
       
       if (userData) {
         setAuditCount(userData.audit_count || 0);
-        // Update userProfile with brand information and agency_id (client of an agency)
-        if (userData.account_type || userData.brand_name || userData.agency_id) {
-          setUserProfile((prev: any) => ({
-            ...prev,
-            account_type: userData.account_type || 'personal',
-            brand_name: userData.brand_name || null,
-            brand_website: userData.brand_website || null,
-            agency_id: userData.agency_id || null,
-          }));
-        }
+        // Update userProfile with brand information, agency_id, and admin flag
+        setUserProfile((prev: any) => ({
+          ...prev,
+          account_type: userData.account_type || prev?.account_type || 'personal',
+          brand_name: userData.brand_name || prev?.brand_name || null,
+          brand_website: userData.brand_website || prev?.brand_website || null,
+          agency_id: userData.agency_id || prev?.agency_id || null,
+          is_admin: isAdmin,
+        }));
+      } else if (isAdmin) {
+        setUserProfile((prev: any) => ({ ...prev, is_admin: true }));
       }
 
       // If user is an agency client, load agency theme (logo, colors) and agency name
@@ -989,7 +1004,12 @@ export default function AuditDashboard() {
       return;
     }
 
-    if (auditCount >= 2 && (!userProfile || userProfile.plan_type === 'free')) {
+    // Admins can run unlimited audits; free users are capped at 2
+    if (
+      !userProfile?.is_admin &&
+      auditCount >= 2 &&
+      (!userProfile || userProfile.plan_type === 'free')
+    ) {
       setShowPricingModal(true);
       return;
     }
@@ -1464,7 +1484,11 @@ export default function AuditDashboard() {
                   <span className="truncate max-w-[100px] sm:max-w-none">{currentProject.name || currentProject.domain}</span>
                 </div>
               )}
-              {!userProfile?.agency_id && (userProfile?.plan_type || (userProfile?.account_type === 'brand' && agencyPackageTier)) && (
+              {userProfile?.is_admin ? (
+                <div className="px-2 py-0.5 rounded text-xs font-semibold bg-yellow-400/20 text-yellow-400">
+                  Admin · Unlimited audits
+                </div>
+              ) : !userProfile?.agency_id && (userProfile?.plan_type || (userProfile?.account_type === 'brand' && agencyPackageTier)) && (
                 <div className={`px-2 py-0.5 rounded text-xs font-semibold ${
                   (agencyPackageTier || userProfile?.plan_type) === 'empire' ? 'bg-purple-500/20 text-purple-400' :
                   (agencyPackageTier || userProfile?.plan_type) === 'growth' ? 'bg-yellow-400/20 text-yellow-400' :

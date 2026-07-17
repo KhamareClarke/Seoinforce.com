@@ -173,12 +173,15 @@ export async function POST(request: NextRequest) {
 
     // For free plan: Allow 2 free audits, then require payment
     // For brand accounts on free plan: Allow 2 free audits, then require brand plan
+    // Admins: unlimited audits (no free-plan cap, no credit spend)
     // IMPORTANT: Check BEFORE incrementing to prevent race conditions
     const isBrandAccount = accountType === 'brand';
     const isFreePlan = profile.plan_type === 'free';
+    const isAdmin = !!user.is_admin;
     
     // Skip personal audit limit check if user is an agency client (already checked above)
-    if (!agencyId && isFreePlan && auditCount >= 2) {
+    // Admins can run unlimited audits regardless of plan
+    if (!isAdmin && !agencyId && isFreePlan && auditCount >= 2) {
       // Send audit expiration email
       try {
         await sendAuditExpiredEmail(
@@ -207,7 +210,8 @@ export async function POST(request: NextRequest) {
 
     // Increment audit count BEFORE running audit (personal accounts only; agency clients already incremented above)
     // This ensures that if multiple requests come in, only the allowed number will pass
-    if (!agencyId && isFreePlan) {
+    // Admins are not capped — skip count so free-plan UI stays unused for them
+    if (!isAdmin && !agencyId && isFreePlan) {
       // First, ensure the audit_count column exists by trying to add it if needed
       // Then increment the count
       const { error: incrementError } = await supabase
@@ -239,8 +243,8 @@ export async function POST(request: NextRequest) {
       auditCount = auditCount + 1;
     }
 
-    // For paid plans (including brand plan): Check API credits
-    if (profile.plan_type !== 'free' && profile.api_credits < 1) {
+    // For paid plans (including brand plan): Check API credits (admins bypass)
+    if (!isAdmin && profile.plan_type !== 'free' && profile.api_credits < 1) {
       // Send audit expiration email
       try {
         await sendAuditExpiredEmail(
@@ -621,7 +625,8 @@ export async function POST(request: NextRequest) {
       // Audit count already incremented for free plans before audit started
       // Only increment for paid plans here (though they use API credits, not audit_count)
       // Update API credits only for paid plans (free plan uses audit_count limit)
-      if (profile.plan_type !== 'free') {
+      // Admins do not consume credits
+      if (!isAdmin && profile.plan_type !== 'free') {
         await supabase
           .from('profiles')
           .update({ api_credits: profile.api_credits - 1 })
