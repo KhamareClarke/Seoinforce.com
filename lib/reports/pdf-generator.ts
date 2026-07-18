@@ -189,7 +189,7 @@ export class PDFReportGenerator {
 
   /** Single-line clipped text — never triggers PDFKit page breaks */
   private tw(
-    doc: PDFKit.PDFDocument,
+    doc: any,
     str: string,
     x: number,
     y: number,
@@ -213,7 +213,7 @@ export class PDFReportGenerator {
     });
   }
 
-  private drawLogoMark(doc: PDFKit.PDFDocument, x: number, y: number, size = 28) {
+  private drawLogoMark(doc: any, x: number, y: number, size = 28) {
     if (this.logoPath) {
       try {
         doc.image(this.logoPath, x, y, { width: size, height: size, fit: [size, size] });
@@ -234,7 +234,7 @@ export class PDFReportGenerator {
     });
   }
 
-  private drawHeaderBar(doc: PDFKit.PDFDocument, data: ReportData, subtitle: string) {
+  private drawHeaderBar(doc: any, data: ReportData, subtitle: string) {
     const pageW = doc.page.width;
     const primary = this.primary(data);
     doc.save();
@@ -250,7 +250,7 @@ export class PDFReportGenerator {
     this.t(doc, subtitle, 86, 30, { fontSize: 9, color: THEME.gold });
   }
 
-  private applyFooters(doc: PDFKit.PDFDocument, data: ReportData) {
+  private applyFooters(doc: any, data: ReportData) {
     const range = doc.bufferedPageRange();
     for (let i = 0; i < range.count; i++) {
       doc.switchToPage(range.start + i);
@@ -313,7 +313,7 @@ export class PDFReportGenerator {
     });
   }
 
-  private addCoverPage(doc: PDFKit.PDFDocument, data: ReportData) {
+  private addCoverPage(doc: any, data: ReportData) {
     const pageW = doc.page.width;
     const primary = this.primary(data);
     const tone = scoreTone(data.overall_score);
@@ -468,7 +468,7 @@ export class PDFReportGenerator {
     );
   }
 
-  private addCategoryBreakdown(doc: PDFKit.PDFDocument, data: ReportData) {
+  private addCategoryBreakdown(doc: any, data: ReportData) {
     this.drawHeaderBar(doc, data, 'Score breakdown');
     const pageW = doc.page.width;
     let y = 70;
@@ -536,7 +536,7 @@ export class PDFReportGenerator {
   }
 
   private addIssuesPage(
-    doc: PDFKit.PDFDocument,
+    doc: any,
     data: ReportData,
     addPage: () => void
   ) {
@@ -624,7 +624,7 @@ export class PDFReportGenerator {
   }
 
   private addChecklistPage(
-    doc: PDFKit.PDFDocument,
+    doc: any,
     data: ReportData,
     addPage: () => void
   ) {
@@ -721,7 +721,7 @@ export class PDFReportGenerator {
     }
   }
 
-  private addRecommendationsPage(doc: PDFKit.PDFDocument, data: ReportData) {
+  private addRecommendationsPage(doc: any, data: ReportData) {
     this.drawHeaderBar(doc, data, 'Next steps');
     const pageW = doc.page.width;
     const issues = this.clientIssues(data);

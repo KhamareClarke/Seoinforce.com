@@ -367,6 +367,8 @@ export default function AuditDashboard() {
   const [leadName, setLeadName] = useState("");
   const [leadEmail, setLeadEmail] = useState("");
   const [pdfEmailSent, setPdfEmailSent] = useState(false);
+  const [pdfSending, setPdfSending] = useState(false);
+  const [lastAuditId, setLastAuditId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [competitorData, setCompetitorData] = useState<any>(null);
   const [vitalsHistory, setVitalsHistory] = useState<any[]>([]);
@@ -403,9 +405,8 @@ export default function AuditDashboard() {
   }, []);
 
   useEffect(() => {
-    if (projects.length > 0) {
-      loadAllAudits();
-    }
+    // Always load history via API (does not depend on projects state race)
+    void loadAllAudits();
   }, [projects.length]);
 
   useEffect(() => {
@@ -650,61 +651,21 @@ export default function AuditDashboard() {
 
   const loadAllAudits = async () => {
     try {
-      const allAudits: any[] = [];
-
-      // If we have projects, load audits by project
-      if (projects.length > 0) {
-        const projectIds = projects.map((p: any) => p.id);
-        for (const projectId of projectIds) {
-          const response = await fetch(`/api/audit?project_id=${projectId}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.audits && Array.isArray(data.audits)) {
-              allAudits.push(...data.audits);
-            }
-          }
-        }
+      // Prefer authenticated API (works with custom JWT; bypasses client RLS issues)
+      const response = await fetch('/api/audit', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        const list = Array.isArray(data.audits) ? data.audits : [];
+        list.sort((a: any, b: any) => {
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateB - dateA;
+        });
+        setAudits(list);
+      } else {
+        console.error('Failed to load audit history:', await response.text());
       }
 
-      // Also try to load all audits for the user directly
-      try {
-        const user = await getCurrentUserClient();
-        if (user) {
-          const { data: userAudits } = await supabase
-            .from('audits')
-            .select(`
-              *,
-              projects:project_id (
-                id,
-                domain,
-                name
-              )
-            `)
-            .order('created_at', { ascending: false });
-
-          if (userAudits && Array.isArray(userAudits)) {
-            // Merge with existing audits, avoiding duplicates
-            const existingIds = new Set(allAudits.map(a => a.id));
-            userAudits.forEach(audit => {
-              if (!existingIds.has(audit.id)) {
-                allAudits.push(audit);
-              }
-            });
-          }
-        }
-      } catch (supabaseError) {
-        console.log('Could not load audits from Supabase directly:', supabaseError);
-      }
-
-      allAudits.sort((a, b) => {
-        const dateA = new Date(a.created_at || 0).getTime();
-        const dateB = new Date(b.created_at || 0).getTime();
-        return dateB - dateA;
-      });
-
-      setAudits(allAudits);
-      
-      // Load audit_count from users table (not from counting audits)
       const user = await getCurrentUserClient();
       if (user) {
         const { data: userData } = await supabase
@@ -712,10 +673,7 @@ export default function AuditDashboard() {
           .select('audit_count')
           .eq('id', user.id)
           .single();
-        
-        if (userData) {
-          setAuditCount(userData.audit_count || 0);
-        }
+        if (userData) setAuditCount(userData.audit_count || 0);
       }
     } catch (err) {
       console.error('Error loading all audits:', err);
@@ -729,6 +687,7 @@ export default function AuditDashboard() {
         const data = await response.json();
         if (data.audit) {
           setAudit(data.audit);
+          setLastAuditId(data.audit.id || null);
           setDomain(data.audit.domain || '');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -1082,18 +1041,27 @@ export default function AuditDashboard() {
 
       const auditData = await auditResponse.json();
       if (auditData.result) {
-        setAudit(auditData.result);
+        setAudit({
+          ...auditData.result,
+          id: auditData.audit_id || auditData.result.id,
+          domain: normalizedDomain,
+          status: 'completed',
+        });
+      }
+      if (auditData.audit_id) {
+        setLastAuditId(auditData.audit_id);
       }
 
-      // Audit is already complete from POST — stop the double "Analyzing" UI immediately.
-      // Background poll only refreshes vitals / history if an id is returned.
+      // Audit is already complete from POST — stop loading UI immediately
       setLoading(false);
+
+      // Refresh history so Audit History shows this run
+      void loadAllAudits();
 
       if (auditData.audit_id) {
         void pollAuditStatus(auditData.audit_id);
       }
 
-      // Refresh free-plan usage counter
       const user = await getCurrentUserClient();
       if (user) {
         const { data: userData } = await supabase
@@ -1212,58 +1180,61 @@ export default function AuditDashboard() {
   };
 
   const handleDownloadPDF = async () => {
-    if (!audit || !currentProject) {
-      setError('No audit data available');
+    if (!audit) {
+      setError('No audit data available. Run an audit first.');
+      return;
+    }
+    if (!leadEmail.trim()) {
+      setError('Please enter your email so we can send the report.');
       return;
     }
 
     try {
-      let auditId = audit.id;
-      
-      if (!auditId) {
-        const auditRecord = audits.find(a => 
-          a.domain === currentProject.domain || 
-          (a.project_id && a.project_id === currentProject.id)
+      let auditId = audit.id || lastAuditId;
+
+      if (!auditId && currentProject) {
+        const auditRecord = audits.find(
+          (a) =>
+            a.domain === currentProject.domain ||
+            (a.project_id && a.project_id === currentProject.id)
         );
-        if (auditRecord) {
-          auditId = auditRecord.id;
-        }
+        if (auditRecord) auditId = auditRecord.id;
       }
-      
-      if (!auditId && currentProject.id) {
-        const projectAudits = audits.filter(a => a.project_id === currentProject.id);
-        if (projectAudits.length > 0) {
-          const sortedAudits = projectAudits.sort((a, b) => 
-            new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+
+      if (!auditId && currentProject?.id) {
+        const projectAudits = audits
+          .filter((a) => a.project_id === currentProject.id)
+          .sort(
+            (a, b) =>
+              new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
           );
-          auditId = sortedAudits[0].id;
-        }
+        if (projectAudits.length > 0) auditId = projectAudits[0].id;
       }
 
       if (!auditId) {
-        setError('Audit ID not found. Please run an audit first.');
+        setError('Audit ID not found. Please run an audit again, then request the PDF.');
         return;
       }
 
       setError(null);
-      setLoading(true);
+      setPdfSending(true);
 
       const response = await fetch('/api/reports/generate', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          auditId: auditId,
+        body: JSON.stringify({
+          auditId,
           whiteLabel: undefined,
-          leadEmail: leadEmail || undefined,
-          leadName: leadName || undefined,
+          leadEmail: leadEmail.trim(),
+          leadName: leadName.trim() || undefined,
         }),
       });
 
+      const contentType = response.headers.get('content-type') || '';
+
       if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        
-        // PDF sent via email: API returns JSON success
-        if (contentType && contentType.includes('application/json')) {
+        if (contentType.includes('application/json')) {
           const data = await response.json();
           if (data.success) {
             setShowLeadModal(false);
@@ -1271,18 +1242,16 @@ export default function AuditDashboard() {
             setLeadEmail('');
             setError(null);
             setPdfEmailSent(true);
-            setTimeout(() => setPdfEmailSent(false), 6000);
+            setTimeout(() => setPdfEmailSent(false), 8000);
             return;
           }
-        }
-        
-        // Direct PDF download (no lead email flow)
-        if (contentType && contentType.includes('application/pdf')) {
+          setError(data.error || 'Failed to send report email');
+        } else if (contentType.includes('application/pdf')) {
           const blob = await response.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `seo-audit-${currentProject.domain}-${Date.now()}.pdf`;
+          a.download = `seo-audit-${currentProject?.domain || audit.domain || 'report'}-${Date.now()}.pdf`;
           document.body.appendChild(a);
           a.click();
           window.URL.revokeObjectURL(url);
@@ -1290,25 +1259,21 @@ export default function AuditDashboard() {
           setShowLeadModal(false);
           setLeadName('');
           setLeadEmail('');
+          setPdfEmailSent(true);
+          setTimeout(() => setPdfEmailSent(false), 8000);
         } else {
-          const errorData = await response.json().catch(() => ({}));
-          setError(errorData.error || 'Failed to generate PDF');
+          setError('Unexpected response while generating the report');
         }
+      } else if (contentType.includes('application/json')) {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to generate PDF');
       } else {
-        // Handle error response
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const errorData = await response.json();
-          setError(errorData.error || 'Failed to generate PDF');
-        } else {
-          const errorText = await response.text();
-          setError(errorText || 'Failed to generate PDF');
-        }
+        setError((await response.text()) || 'Failed to generate PDF');
       }
-      
-      setLoading(false);
     } catch (err: any) {
-      setError(err.message || 'Failed to download PDF');
+      setError(err.message || 'Failed to send report');
+    } finally {
+      setPdfSending(false);
     }
   };
 
@@ -1582,7 +1547,12 @@ export default function AuditDashboard() {
           {pdfEmailSent && (
             <div className="bg-green-500/20 border border-green-500/50 text-green-400 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
               <CheckCircle className="h-5 w-5 shrink-0" />
-              Report sent to your email. Check your inbox and use the download link in the email.
+              Your SEO report PDF has been sent to your email. Check your inbox (and spam) for the download link.
+            </div>
+          )}
+          {error && !showLeadModal && (
+            <div className="bg-red-500/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm">
+              {error}
             </div>
           )}
           {showAuditHistory ? (
@@ -3204,14 +3174,37 @@ export default function AuditDashboard() {
         {showLeadModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
             <div className={`bg-[#181818] border-2 rounded-2xl p-8 w-full max-w-sm shadow-2xl flex flex-col items-center ${agencyTheme ? 'agency-border' : 'border-yellow-400/40'}`} style={agencyTheme ? { borderColor: accentPrimary + '60' } : undefined}>
-              <h3 className={`text-xl font-bold mb-2 ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>Get PDF Report by Email</h3>
-              <p className="text-sm mb-4" style={{ color: agencyTheme ? accentPrimary : '#FFD700' }}>Enter your details and we&apos;ll send the full report to your email with a download link.</p>
-              <form className="w-full flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); handleDownloadPDF(); }}>
-                <input type="text" required placeholder="Your Name" value={leadName} onChange={e => setLeadName(e.target.value)} className="px-4 py-3 rounded-lg bg-[#232323] text-white border focus:outline-none" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)' }} />
-                <input type="email" required placeholder="Your Email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} className="px-4 py-3 rounded-lg bg-[#232323] text-white border focus:outline-none" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)' }} />
+              <h3 className={`text-xl font-bold mb-2 ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>Email Your PDF Report</h3>
+              <p className="text-sm text-[#C0C0C0] mb-2 text-center">
+                We&apos;ll generate the full SEO audit PDF and <span className="font-semibold" style={{ color: agencyTheme ? accentPrimary : '#FFD700' }}>send it to your email</span> with a download link.
+              </p>
+              <p className="text-xs text-[#C0C0C0] mb-4 text-center">This does not re-run the audit — it only emails the report you already completed.</p>
+              <form
+                className="w-full flex flex-col gap-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void handleDownloadPDF();
+                }}
+              >
+                <input type="text" required placeholder="Your Name" value={leadName} onChange={e => setLeadName(e.target.value)} disabled={pdfSending} className="px-4 py-3 rounded-lg bg-[#232323] text-white border focus:outline-none disabled:opacity-60" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)' }} />
+                <input type="email" required placeholder="Your Email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} disabled={pdfSending} className="px-4 py-3 rounded-lg bg-[#232323] text-white border focus:outline-none disabled:opacity-60" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)' }} />
                 <div className="flex gap-3 mt-2">
-                  <button type="submit" className={agencyTheme ? 'flex-1 text-black font-bold py-3 rounded-lg shadow transition' : 'flex-1 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold py-3 rounded-lg shadow hover:bg-yellow-500 transition'} style={agencyTheme ? { backgroundColor: accentPrimary } : undefined}>Send to Email</button>
-                  <button type="button" className="flex-1 bg-[#232323] border font-bold py-3 rounded-lg hover:opacity-80 transition" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)', color: agencyTheme ? accentPrimary : '#FFD700' }} onClick={() => setShowLeadModal(false)}>Cancel</button>
+                  <button
+                    type="submit"
+                    disabled={pdfSending}
+                    className={agencyTheme ? 'flex-1 text-black font-bold py-3 rounded-lg shadow transition disabled:opacity-60 flex items-center justify-center gap-2' : 'flex-1 bg-gradient-to-r from-yellow-400 via-[#ffd700] to-yellow-400 text-black font-bold py-3 rounded-lg shadow hover:bg-yellow-500 transition disabled:opacity-60 flex items-center justify-center gap-2'}
+                    style={agencyTheme ? { backgroundColor: accentPrimary } : undefined}
+                  >
+                    {pdfSending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Sending…
+                      </>
+                    ) : (
+                      'Send Report to Email'
+                    )}
+                  </button>
+                  <button type="button" disabled={pdfSending} className="flex-1 bg-[#232323] border font-bold py-3 rounded-lg hover:opacity-80 transition disabled:opacity-60" style={{ borderColor: agencyTheme ? accentPrimary + '50' : 'rgba(250,204,21,0.3)', color: agencyTheme ? accentPrimary : '#FFD700' }} onClick={() => setShowLeadModal(false)}>Cancel</button>
                 </div>
               </form>
             </div>

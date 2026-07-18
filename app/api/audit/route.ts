@@ -782,16 +782,34 @@ export async function GET(request: NextRequest) {
           audit_issues(*)
         `)
         .eq('project_id', projectId)
+        .eq('projects.user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
         return NextResponse.json({ error: 'Failed to fetch audits' }, { status: 500 });
       }
 
-      return NextResponse.json({ audits });
+      return NextResponse.json({ audits: audits || [] });
     }
 
-    return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+    // List all audits for the current user (across their projects)
+    const { data: audits, error } = await supabase
+      .from('audits')
+      .select(`
+        *,
+        projects!inner(user_id, domain, name),
+        audit_issues(*)
+      `)
+      .eq('projects.user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) {
+      console.error('List audits error:', error);
+      return NextResponse.json({ error: 'Failed to fetch audits' }, { status: 500 });
+    }
+
+    return NextResponse.json({ audits: audits || [] });
   } catch (error) {
     console.error('Get audit error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
