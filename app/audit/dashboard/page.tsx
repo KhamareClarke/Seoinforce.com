@@ -56,103 +56,112 @@ function AnimatedProgress({ value, duration = 1000 }: { value: number; duration?
 
 function AnimatedGauge({ value, max = 100, size = 180 }: { value: number; max?: number; size?: number }) {
   const [angle, setAngle] = React.useState(0);
+  const filterId = React.useId().replace(/:/g, '');
+
   React.useEffect(() => {
-    let start = 0;
+    let frame = 0;
     let startTime: number | null = null;
     const target = (value / max) * 180;
     function animate(ts: number) {
       if (!startTime) startTime = ts;
       const progress = Math.min((ts - startTime) / 1000, 1);
-      setAngle(start + (target - start) * progress);
-      if (progress < 1) requestAnimationFrame(animate);
+      setAngle(target * progress);
+      if (progress < 1) frame = requestAnimationFrame(animate);
     }
-    requestAnimationFrame(animate);
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
   }, [value, max]);
-  
-  const padding = 20;
-  const gaugeHeight = size * 0.7;
-  const textHeight = 60;
-  const totalHeight = gaugeHeight + textHeight;
+
+  const padding = 16;
   const cx = size / 2;
-  const cy = gaugeHeight / 2 + padding;
-  const r = (size - padding * 2) / 2 - 20;
-  
+  const cy = size * 0.42;
+  const r = Math.max(40, (size - padding * 2) / 2 - 24);
+  const scoreFontSize = Math.round(size * 0.18);
+
   const startAngle = -90;
   const endAngle = angle - 90;
-  const start = [cx + r * Math.cos((Math.PI * startAngle) / 180), cy + r * Math.sin((Math.PI * startAngle) / 180)];
-  const end = [cx + r * Math.cos((Math.PI * endAngle) / 180), cy + r * Math.sin((Math.PI * endAngle) / 180)];
+  const start = [
+    cx + r * Math.cos((Math.PI * startAngle) / 180),
+    cy + r * Math.sin((Math.PI * startAngle) / 180),
+  ];
+  const end = [
+    cx + r * Math.cos((Math.PI * endAngle) / 180),
+    cy + r * Math.sin((Math.PI * endAngle) / 180),
+  ];
   const largeArc = angle > 180 ? 1 : 0;
   const arcPath = `M ${start[0]} ${start[1]} A ${r} ${r} 0 ${largeArc} 1 ${end[0]} ${end[1]}`;
-  const needleAngle = ((value / max) * 180) - 90;
-  const needleX = cx + (r - 10) * Math.cos((Math.PI * needleAngle) / 180);
-  const needleY = cy + (r - 10) * Math.sin((Math.PI * needleAngle) / 180);
-  
+  const needleAngle = (value / max) * 180 - 90;
+  const needleX = cx + (r - 14) * Math.cos((Math.PI * needleAngle) / 180);
+  const needleY = cy + (r - 14) * Math.sin((Math.PI * needleAngle) / 180);
+  const svgHeight = cy + r * 0.35 + 56;
+
   return (
-    <div className="flex flex-col items-center justify-center">
-      <svg 
-        width={size} 
-        height={totalHeight} 
-        viewBox={`0 0 ${size} ${totalHeight}`} 
-        className="block mx-auto drop-shadow-[0_0_32px_#FFD70088]"
-        style={{ overflow: 'visible' }}
+    <div className="flex flex-col items-center justify-center w-full max-w-[320px] mx-auto">
+      <svg
+        width="100%"
+        height={svgHeight}
+        viewBox={`0 0 ${size} ${svgHeight}`}
+        className="block mx-auto drop-shadow-[0_0_24px_#FFD70066]"
+        style={{ overflow: 'visible', maxWidth: size }}
       >
-        <path 
-          d={`M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r} ${cy}`} 
-          fill="none" 
-          stroke="#232323" 
-          strokeWidth={20} 
-          strokeLinecap="round"
-        />
-        <path 
-          d={arcPath} 
-          fill="none" 
-          stroke="#FFD700" 
-          strokeWidth={20} 
-          strokeLinecap="round" 
-          filter="url(#glow)"
-        />
         <defs>
-          <filter id="glow">
-            <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#FFD700" floodOpacity="0.8" />
+          <filter id={`glow-${filterId}`}>
+            <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#FFD700" floodOpacity="0.75" />
           </filter>
         </defs>
-        <line 
-          x1={cx} 
-          y1={cy} 
-          x2={needleX} 
-          y2={needleY} 
-          stroke="#FFD700" 
-          strokeWidth={8} 
+        <path
+          d={`M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r} ${cy}`}
+          fill="none"
+          stroke="#232323"
+          strokeWidth={18}
           strokeLinecap="round"
-          filter="url(#glow)"
         />
-        <circle 
-          cx={cx} 
-          cy={cy} 
-          r={16} 
-          fill="#FFD700" 
-          stroke="#232323" 
-          strokeWidth={4}
-          filter="url(#glow)"
+        <path
+          d={arcPath}
+          fill="none"
+          stroke="#FFD700"
+          strokeWidth={18}
+          strokeLinecap="round"
+          filter={`url(#glow-${filterId})`}
         />
-        <text 
-          x={cx} 
-          y={cy + 8} 
-          textAnchor="middle" 
-          fill="#FFD700" 
-          fontSize="3.5rem" 
-          fontWeight="bold"
-          className="drop-shadow-[0_0_8px_#FFD700]"
+        <line
+          x1={cx}
+          y1={cy}
+          x2={needleX}
+          y2={needleY}
+          stroke="#FFD700"
+          strokeWidth={6}
+          strokeLinecap="round"
+          filter={`url(#glow-${filterId})`}
+        />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={12}
+          fill="#FFD700"
+          stroke="#181818"
+          strokeWidth={3}
+        />
+        {/* Score sits below the arc hub so it never overlaps the needle */}
+        <text
+          x={cx}
+          y={cy + r * 0.55}
+          textAnchor="middle"
+          fill="#FFD700"
+          fontSize={scoreFontSize}
+          fontWeight="700"
+          fontFamily="system-ui, sans-serif"
         >
           {Math.round(value)}
         </text>
-        <text 
-          x={cx} 
-          y={gaugeHeight + 35} 
-          textAnchor="middle" 
-          fill="#C0C0C0" 
-          fontSize="1.1rem" 
-          fontWeight="bold"
+        <text
+          x={cx}
+          y={cy + r * 0.55 + scoreFontSize * 0.7}
+          textAnchor="middle"
+          fill="#C0C0C0"
+          fontSize={Math.round(size * 0.055)}
+          fontWeight="600"
+          fontFamily="system-ui, sans-serif"
         >
           SEO Score
         </text>
@@ -1001,6 +1010,7 @@ export default function AuditDashboard() {
 
   const handleRunAudit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!domain.trim()) {
       setError('Please enter a domain');
       return;
@@ -1071,10 +1081,27 @@ export default function AuditDashboard() {
       }
 
       const auditData = await auditResponse.json();
-      setAudit(auditData.result);
-      
+      if (auditData.result) {
+        setAudit(auditData.result);
+      }
+
+      // Audit is already complete from POST — stop the double "Analyzing" UI immediately.
+      // Background poll only refreshes vitals / history if an id is returned.
+      setLoading(false);
+
       if (auditData.audit_id) {
-        pollAuditStatus(auditData.audit_id);
+        void pollAuditStatus(auditData.audit_id);
+      }
+
+      // Refresh free-plan usage counter
+      const user = await getCurrentUserClient();
+      if (user) {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('audit_count')
+          .eq('id', user.id)
+          .single();
+        if (userData) setAuditCount(userData.audit_count || 0);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to run audit');
@@ -1676,12 +1703,13 @@ export default function AuditDashboard() {
               <section className="max-w-2xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-10 text-center fade-in-up">
                 <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-extrabold mb-3 ${agencyTheme ? 'agency-header-title' : 'hero-gradient-text'}`}>{agencyName ? `Welcome to ${agencyName} – instant audits, real results.` : 'See SEOInForce in action – instant audits, real results.'}</h1>
                 <p className="text-[#C0C0C0] text-base sm:text-lg mb-6 px-4">Enter your domain and get a free instant SEO audit report in under 60 seconds.</p>
-                <form className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-2 px-4 sm:px-0" onSubmit={handleRunAudit}>
+                <form className="flex flex-col gap-3 justify-center items-stretch mb-2 px-4 sm:px-0" onSubmit={handleRunAudit}>
                   {error && (
-                    <div className="w-full bg-red-500/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm mb-4">
+                    <div className="w-full bg-red-500/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-lg text-sm text-left">
                       {error}
                     </div>
                   )}
+                  <div className="flex flex-col sm:flex-row gap-3 items-center">
                   <Input
                     value={domain}
                     onChange={e => setDomain(e.target.value)}
@@ -1706,14 +1734,14 @@ export default function AuditDashboard() {
                       </>
                     )}
                   </Button>
+                  </div>
                 </form>
                 <div className="text-xs font-semibold mb-4" style={agencyTheme ? { color: accentPrimary } : { color: '#FFD700' }}>Instant SEO Audit in under 60 seconds. No credit card required.</div>
               </section>
 
               {loading && (
-                <div className="text-center py-12">
-                  <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" style={{ color: accentPrimary }} />
-                  <p className="text-[#C0C0C0]">Running SEO audit... This may take up to 60 seconds.</p>
+                <div className="text-center py-6 px-4">
+                  <p className="text-[#C0C0C0] text-sm">Running SEO audit… this usually takes under 60 seconds.</p>
                 </div>
               )}
 
@@ -1744,67 +1772,43 @@ export default function AuditDashboard() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12 mb-8">
-                        <div className="flex-shrink-0 w-full lg:w-auto flex justify-center items-center py-4">
-                          <AnimatedGauge value={auditData.overall_score || 0} size={280} />
+                      <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-10 mb-8">
+                        <div className="flex-shrink-0 w-full lg:w-[300px] flex justify-center items-center py-2">
+                          <AnimatedGauge value={auditData.overall_score || 0} size={260} />
                         </div>
 
-                        <div className="flex-1 w-full grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-                          <div className="bg-gradient-to-br from-black/80 to-[#181818]/80 p-5 lg:p-6 rounded-2xl border-2 border-yellow-400/30 shadow-lg hover:border-yellow-400/50 transition-all group min-w-0">
-                            <div className="flex items-center gap-2 mb-3 flex-wrap">
-                              <Wrench className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-                              <span className="text-sm font-semibold text-[#FFD700] whitespace-nowrap">Technical</span>
+                        <div className="flex-1 w-full grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 min-w-0">
+                          {[
+                            { label: 'Technical', Icon: Wrench, score: auditData.technical_score || 0 },
+                            { label: 'On-Page', Icon: FileText, score: auditData.onpage_score || 0 },
+                            { label: 'Content', Icon: MessageCircle, score: auditData.content_score || 0 },
+                            {
+                              label: 'Competitor',
+                              Icon: LucideLink,
+                              score: (competitorData?.competitor_score ?? auditData.competitor_score) || 0,
+                            },
+                          ].map(({ label, Icon, score }) => (
+                            <div
+                              key={label}
+                              className="bg-gradient-to-br from-black/80 to-[#181818]/80 p-4 sm:p-5 rounded-2xl border-2 border-yellow-400/30 shadow-lg hover:border-yellow-400/50 transition-all min-w-0 overflow-hidden"
+                            >
+                              <div className="flex items-center gap-2 mb-3 min-w-0">
+                                <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400 flex-shrink-0" />
+                                <span className="text-xs sm:text-sm font-semibold text-[#FFD700] truncate">
+                                  {label}
+                                </span>
+                              </div>
+                              <div className="w-full h-3 sm:h-4 bg-[#232323] rounded-full overflow-hidden mb-3">
+                                <AnimatedProgress value={score} />
+                              </div>
+                              <div className="flex items-baseline gap-1 whitespace-nowrap">
+                                <span className="text-2xl sm:text-3xl font-bold text-yellow-400 tabular-nums leading-none">
+                                  {score}
+                                </span>
+                                <span className="text-xs sm:text-sm text-[#C0C0C0] font-medium">/100</span>
+                              </div>
                             </div>
-                            <div className="w-full h-4 bg-[#232323] rounded-full overflow-hidden mb-2">
-                              <AnimatedProgress value={auditData.technical_score || 0} />
-                            </div>
-                            <div className="text-xl lg:text-2xl font-bold text-yellow-400 break-words">
-                              {auditData.technical_score || 0}
-                              <span className="text-xs lg:text-sm text-[#C0C0C0] ml-1">/100</span>
-                            </div>
-                          </div>
-                          
-                          <div className="bg-gradient-to-br from-black/80 to-[#181818]/80 p-5 lg:p-6 rounded-2xl border-2 border-yellow-400/30 shadow-lg hover:border-yellow-400/50 transition-all group min-w-0">
-                            <div className="flex items-center gap-2 mb-3 flex-wrap">
-                              <FileText className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-                              <span className="text-sm font-semibold text-[#FFD700] whitespace-nowrap">On-Page</span>
-                            </div>
-                            <div className="w-full h-4 bg-[#232323] rounded-full overflow-hidden mb-2">
-                              <AnimatedProgress value={auditData.onpage_score || 0} />
-                            </div>
-                            <div className="text-xl lg:text-2xl font-bold text-yellow-400 break-words">
-                              {auditData.onpage_score || 0}
-                              <span className="text-xs lg:text-sm text-[#C0C0C0] ml-1">/100</span>
-                            </div>
-                          </div>
-                          
-                          <div className="bg-gradient-to-br from-black/80 to-[#181818]/80 p-5 lg:p-6 rounded-2xl border-2 border-yellow-400/30 shadow-lg hover:border-yellow-400/50 transition-all group min-w-0">
-                            <div className="flex items-center gap-2 mb-3 flex-wrap">
-                              <MessageCircle className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-                              <span className="text-sm font-semibold text-[#FFD700] whitespace-nowrap">Content</span>
-                            </div>
-                            <div className="w-full h-4 bg-[#232323] rounded-full overflow-hidden mb-2">
-                              <AnimatedProgress value={auditData.content_score || 0} />
-                            </div>
-                            <div className="text-xl lg:text-2xl font-bold text-yellow-400 break-words">
-                              {auditData.content_score || 0}
-                              <span className="text-xs lg:text-sm text-[#C0C0C0] ml-1">/100</span>
-                            </div>
-                          </div>
-                          
-                          <div className="bg-gradient-to-br from-black/80 to-[#181818]/80 p-5 lg:p-6 rounded-2xl border-2 border-yellow-400/30 shadow-lg hover:border-yellow-400/50 transition-all group min-w-0">
-                            <div className="flex items-center gap-2 mb-3 flex-wrap">
-                              <LucideLink className="h-5 w-5 text-yellow-400 flex-shrink-0" />
-                              <span className="text-sm font-semibold text-[#FFD700] whitespace-nowrap">Competitor</span>
-                            </div>
-                            <div className="w-full h-4 bg-[#232323] rounded-full overflow-hidden mb-2">
-                              <AnimatedProgress value={(competitorData?.competitor_score ?? auditData.competitor_score) || 0} />
-                            </div>
-                            <div className="text-xl lg:text-2xl font-bold text-yellow-400 break-words">
-                              {(competitorData?.competitor_score ?? auditData.competitor_score) || 0}
-                              <span className="text-xs lg:text-sm text-[#C0C0C0] ml-1">/100</span>
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </div>
 
