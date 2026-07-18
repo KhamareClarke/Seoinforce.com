@@ -1,10 +1,30 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Outfit } from 'next/font/google';
+import { Syne } from 'next/font/google';
+import { Archivo_Black } from 'next/font/google';
 import Script from 'next/script';
 import { getSiteUrl } from '@/lib/site-url';
 
-const inter = Inter({ subsets: ['latin'] });
+const outfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+});
+
+const syne = Syne({
+  subsets: ['latin'],
+  variable: '--font-display',
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+});
+
+const archivoblack = Archivo_Black({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-heading',
+  display: 'swap',
+});
 
 const siteUrl = getSiteUrl();
 
@@ -106,7 +126,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://www.youtube.com" />
         <link rel="dns-prefetch" href="https://calendly.com" />
       </head>
-      <body className={`bg-gradient-to-b from-black to-black min-h-screen ${inter.className}`}>
+      <body className={`${outfit.variable} ${syne.variable} ${archivoblack.variable} font-sans bg-[#0a0a0c] min-h-screen antialiased`}>
         {/* Organization (LocalBusiness) Schema */}
         <Script id="ld-localbusiness" type="application/ld+json">
           {JSON.stringify({

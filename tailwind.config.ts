@@ -9,6 +9,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        heading: ['var(--font-heading)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-body)', 'system-ui', 'sans-serif'],
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':
@@ -127,6 +132,9 @@ const config: Config = {
         'pulse-slow': 'pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'shine': 'shine 2.5s ease-in-out infinite',
         'pulse-border': 'pulse-border 4s ease-in-out infinite',
+        'particle-1': 'particle-1 15s ease-in-out infinite',
+        'particle-2': 'particle-2 18s ease-in-out infinite',
+        'particle-3': 'particle-3 20s ease-in-out infinite',
       },
     },
   },

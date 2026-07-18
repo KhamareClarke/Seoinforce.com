@@ -75,54 +75,60 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+  * { @apply border-border; }
+  body { @apply bg-[#0a0a0c] text-white; }
+  ::selection { background: rgba(255,215,0,0.35); color: #000; }
 }
 
+/* Dot grid */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Page load */
+@keyframes page-fade {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-page-load { animation: page-fade 0.5s cubic-bezier(0.22,1,0.36,1) forwards; }
+
+/* Gold pulse glow for badges */
+@keyframes gold-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0.5); }
+  50%       { box-shadow: 0 0 0 6px rgba(255,215,0,0); }
+}
+.gold-pulse { animation: gold-pulse 2s ease-in-out infinite; }
+
+/* Badge shimmer */
+@keyframes badge-shine {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.badge-shine {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.55) 50%, transparent 100%);
+  background-size: 200% auto;
+  animation: badge-shine 2.5s linear infinite;
+}
+
+/* Count-up stagger */
+@keyframes count-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.count-in { animation: count-in 0.6s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Scroll reveal */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1); }
+.reveal.visible { opacity: 1; transform: none; }
+
 @layer components {
-  .hero-glow {
-    position: absolute;
-    width: 800px;
-    height: 800px;
-    border-radius: 9999px;
-    background: radial-gradient(circle, rgba(234, 179, 8, 0.15) 0%, rgba(234, 179, 8, 0) 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .hero-stats {
-    @apply bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl px-6 py-3;
-  }
-
-  .hero-gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-white via-yellow-500 to-white;
-  }
-
-  .hero-button {
-    @apply relative overflow-hidden transition-all duration-300;
-  }
-
-  .hero-button::after {
-    content: '';
-    @apply absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 opacity-0 transition-opacity duration-300;
-  }
-
-  .hero-button:hover::after {
-    @apply opacity-100;
-  }
-
-  /* Marquee utilities */
-  .marquee {
-    @apply relative overflow-hidden;
-  }
+  /* Marquee */
+  .marquee { @apply relative overflow-hidden; }
   .marquee__inner {
     display: flex;
     width: max-content;
-    gap: 2.5rem; /* ~gap-10 */
+    gap: 2.5rem;
     animation: marquee-scroll 25s linear infinite;
   }
   @keyframes marquee-scroll {
@@ -134,11 +140,10 @@
   }
 }
 
-/* Hide horizontal scrollbar for logo strip when needed */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Agency white-label theme: logo, colors, text use agency primary/secondary */
+/* Agency white-label theme */
 .agency-theme {
   --agency-primary: #facc15;
   --agency-secondary: #eab308;

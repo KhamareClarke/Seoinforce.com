@@ -1,4 +1,5 @@
 'use client';
+export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -16,6 +17,7 @@ import { ContentGapsPanel } from "@/components/audit/ContentGapsPanel";
 import { RankAdvancedPanel } from "@/components/audit/RankAdvancedPanel";
 import { LinkOpportunitiesPanel } from "@/components/audit/LinkOpportunitiesPanel";
 import { TechnicalDeepPanel } from "@/components/audit/TechnicalDeepPanel";
+import { AIVisibilityPanel } from "@/components/audit/AIVisibilityPanel";
 import type { ContentOptimizeResult } from "@/lib/seo/content-optimizer";
 
 function AnimatedNumber({ value, duration = 1000, suffix = "" }: { value: number; duration?: number; suffix?: string }) {
@@ -2286,6 +2288,8 @@ export default function AuditDashboard() {
                     )}
 
                     <TechnicalDeepPanel deep={auditData.technical_deep} />
+
+                    {domain && <AIVisibilityPanel domain={domain} />}
                   </section>
 
                   <section id="onpage" className="w-full max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-10 mb-12 rounded-3xl bg-gradient-to-br from-black/90 via-[#181818]/95 to-black/90 border-2 border-yellow-400/30 shadow-2xl backdrop-blur-xl">

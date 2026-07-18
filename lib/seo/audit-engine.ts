@@ -38,6 +38,7 @@ export interface AuditResult {
     request_count?: number | null;
     mixed_content_count?: number;
     redirect_chain_length?: number;
+    sitemap_url_count?: number;
   };
   onpage: {
     title: { length: number; keyword: boolean; optimal: boolean; text?: string };
@@ -56,6 +57,24 @@ export interface AuditResult {
     lang?: boolean;
     charset?: boolean;
     links: { internal: number; external: number; total: number; external_nofollow?: number };
+    // Extended checks
+    noindex?: boolean;
+    heading_hierarchy_ok?: boolean;
+    h1_text?: string;
+    images_lazy?: number;
+    images_with_dimensions?: number;
+    schema_types?: string[];
+    generic_anchors?: number;
+    // Social, compliance, CMS, accessibility
+    social_presence?: { facebook: boolean; instagram: boolean; linkedin: boolean; twitter: boolean; youtube: boolean };
+    has_privacy_policy?: boolean;
+    has_cookie_consent?: boolean;
+    cms_detected?: string;
+    accessibility_score?: number;
+    // Depth checks
+    third_party_scripts?: number;
+    webp_images?: number;
+    hreflang_count?: number;
   };
   content: {
     readability: number;
@@ -79,17 +98,12 @@ export interface AuditResult {
     anchor_text: Array<{ text: string; count: number }>;
     last_checked: Date;
   };
-  local_seo?: {
-    business_name: string | null;
-    address: string | null;
-    phone: string | null;
-    gmb_present: boolean;
-    gmb_url: string | null;
-    review_count: number;
-    average_rating: number | null;
-    nap_consistency_score: number;
-    local_rank: number | null;
-  };
+  local_seo?: import('./local-seo').LocalSEOData;
+  ppc_signals?: import('./ppc-detection').PPCSignals;
+  spell_check?: import('./spell-check').SpellCheckResult;
+  local_grid?: import('./local-grid').LocalGridResult;
+  local_rank?: import('./local-rank').LocalRankResult;
+  security_headers?: import('./security-headers').SecurityHeadersResult;
 }
 
 type FetchResult = {
@@ -104,6 +118,7 @@ export class SEOAuditEngine {
   private domain: string;
   private baseUrl: string;
   private lastFetch: FetchResult | null = null;
+  private responseHeaders: Record<string, string | string[]> = {};
 
   constructor(domain: string) {
     this.domain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
@@ -151,6 +166,81 @@ export class SEOAuditEngine {
         Promise.resolve(this.checkContent($)),
       ]);
 
+      // PPC detection (fast regex — runs immediately)
+      const { detectPPCSignals } = await import('./ppc-detection');
+      const ppc_signals = detectPPCSignals(html);
+
+      // Spell check on body text
+      const { checkSpelling } = await import('./spell-check');
+      const bodyTextForSpell = $('p, h1, h2, h3, h4, li')
+        .map((_: any, el: any) => $(el).text())
+        .get()
+        .join(' ');
+      const spell_check = checkSpelling(bodyTextForSpell);
+
+      // Security headers
+      const { checkSecurityHeaders } = await import('./security-headers');
+      const security_headers = checkSecurityHeaders(this.responseHeaders);
+
+      // Sitemap URL count (extend technical check)
+      let sitemapUrlCount = 0;
+      try {
+        const sitemapRes = await axios.get(`${new URL(this.baseUrl).origin}/sitemap.xml`, {
+          timeout: 6000,
+        });
+        sitemapUrlCount = (sitemapRes.data as string).match(/<loc>/g)?.length ?? 0;
+      } catch {
+        /* non-critical */
+      }
+
+      // Broken internal link spot-check (first 6 unique internal links)
+      const internalHrefs: string[] = [];
+      $('a[href]').each((_: any, el: any) => {
+        const href = $(el).attr('href') || '';
+        if (
+          (href.startsWith('/') || href.includes(this.domain)) &&
+          !href.startsWith('#') &&
+          !href.startsWith('mailto:') &&
+          !href.startsWith('tel:')
+        ) {
+          const full = href.startsWith('/') ? `${new URL(this.baseUrl).origin}${href}` : href;
+          if (!internalHrefs.includes(full)) internalHrefs.push(full);
+        }
+      });
+      const brokenLinks: string[] = [];
+      await Promise.all(
+        internalHrefs.slice(0, 6).map(async (link) => {
+          try {
+            const r = await axios.head(link, {
+              timeout: 5000,
+              maxRedirects: 5,
+              validateStatus: () => true,
+            });
+            if (r.status === 404 || r.status === 410) brokenLinks.push(link);
+          } catch {
+            /* ignore */
+          }
+        })
+      );
+
+      // Google Local Rank (non-blocking, timeout guarded)
+      let local_rank: import('./local-rank').LocalRankResult | undefined;
+      try {
+        const { checkGoogleLocalRank } = await import('./local-rank');
+        local_rank = await Promise.race([
+          checkGoogleLocalRank(
+            this.domain,
+            null,
+            $('[itemprop="addressLocality"], [itemprop="addressRegion"]').first().text().trim() ||
+              null,
+            onpagePartial.schema_types ?? []
+          ),
+          new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 10000)),
+        ]);
+      } catch {
+        /* non-critical */
+      }
+
       const bodyText = $('body').text().trim();
       const hasTitle = onpagePartial.title.length > 0;
       const hasContent = bodyText.length >= 50;
@@ -173,7 +263,10 @@ export class SEOAuditEngine {
         sitemap: !!technicalBase.sitemap,
       };
 
-      let technical: AuditResult['technical'] = { ...technicalBase };
+      let technical: AuditResult['technical'] = {
+        ...technicalBase,
+        sitemap_url_count: sitemapUrlCount,
+      };
       let technical_deep: AuditResult['technical_deep'];
       let issues = this.generateIssues(technical, onpage, content);
 
@@ -210,19 +303,157 @@ export class SEOAuditEngine {
         console.warn('Technical deep analysis skipped:', deepErr);
       }
 
+      // Local ranking grid — estimated from on-page signals (no API needed)
+      const { generateLocalGrid } = await import('./local-grid');
+      const localBizTypes = [
+        'LocalBusiness',
+        'Store',
+        'Restaurant',
+        'MedicalOrganization',
+        'LegalService',
+        'HomeAndConstructionBusiness',
+        'HealthAndBeautyBusiness',
+        'Plumber',
+        'Attorney',
+        'Dentist',
+        'Doctor',
+        'AccountingService',
+        'RealEstateAgent',
+        'AutoDealer',
+        'BeautySalon',
+        'FoodEstablishment',
+        'GroceryStore',
+        'Hotel',
+        'Gym',
+      ];
+      const hasLocalSchema =
+        onpage.schema_types?.some((t: string) => localBizTypes.includes(t)) ?? false;
+      const gmbInHtml =
+        /maps\.google\.com|business\.google\.com|g\.page\/|goo\.gl\/maps/i.test(html);
+      const hasNAPSignals =
+        /\+44\s*\d{4}|\b0[0-9]{3,4}[\s\-]\d{3,4}\b|\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/i.test(
+          html
+        );
+      const local_grid = generateLocalGrid({
+        nap_score: hasNAPSignals ? 65 : hasLocalSchema ? 45 : 20,
+        gmb_present: gmbInHtml || hasLocalSchema,
+        has_local_schema: hasLocalSchema,
+        review_count: 0,
+        average_rating: null,
+        address:
+          $('[itemprop="streetAddress"], [itemprop="addressLocality"]').first().text().trim() ||
+          null,
+      });
+
+      // Security header issues
+      if (security_headers.grade === 'F' || security_headers.grade === 'D') {
+        issues.push({
+          type: 'technical',
+          severity: 'warning',
+          title: `Security headers grade: ${security_headers.grade} (${security_headers.present.length}/6 set)`,
+          description: `Your server is missing critical HTTP security headers: ${security_headers.missing.join(', ')}. These protect users from XSS, clickjacking, and data leaks.`,
+          fix_suggestion: `Add the missing headers in your server/CDN config or .htaccess. Missing: ${security_headers.missing.join(', ')}.`,
+        });
+      } else if (security_headers.missing.length > 0) {
+        issues.push({
+          type: 'technical',
+          severity: 'info',
+          title: `${security_headers.missing.length} security header${security_headers.missing.length > 1 ? 's' : ''} missing (grade ${security_headers.grade})`,
+          description: `Missing: ${security_headers.missing.join(', ')}. These HTTP headers harden your site against browser-based attacks.`,
+          fix_suggestion: `Add ${security_headers.missing.join(', ')} to your server response headers.`,
+        });
+      }
+
+      // Broken links
+      if (brokenLinks.length > 0) {
+        issues.push({
+          type: 'technical',
+          severity: 'warning',
+          title: `${brokenLinks.length} broken internal link${brokenLinks.length > 1 ? 's' : ''} detected`,
+          description: `Found 404/410 responses on internal links: ${brokenLinks.slice(0, 2).join(', ')}. Broken links harm crawlability, UX, and PageRank flow.`,
+          fix_suggestion: 'Fix or redirect the broken URLs. Use 301 redirects if pages have moved.',
+        });
+      }
+
+      // No WebP images
+      if ((onpage.images?.total ?? 0) > 3 && (onpage.webp_images ?? 0) === 0) {
+        issues.push({
+          type: 'technical',
+          severity: 'info',
+          title: 'No WebP images detected',
+          description: `None of your ${onpage.images.total} images use the WebP format. WebP files are 25–35% smaller than JPEG/PNG, directly improving Core Web Vitals and page speed.`,
+          fix_suggestion:
+            'Convert images to WebP format and serve them using <picture> elements with JPEG/PNG fallbacks.',
+        });
+      }
+
+      // High third-party script load
+      if ((onpage.third_party_scripts ?? 0) > 10) {
+        issues.push({
+          type: 'technical',
+          severity: 'warning',
+          title: `${onpage.third_party_scripts} third-party scripts loading`,
+          description:
+            'Excessive third-party scripts (analytics, chat widgets, ad tags, fonts) are one of the biggest causes of slow Largest Contentful Paint and Total Blocking Time.',
+          fix_suggestion:
+            'Audit your third-party scripts. Defer or lazy-load non-critical ones. Remove any that are no longer used.',
+        });
+      } else if ((onpage.third_party_scripts ?? 0) > 5) {
+        issues.push({
+          type: 'technical',
+          severity: 'info',
+          title: `${onpage.third_party_scripts} third-party scripts — monitor page speed impact`,
+          description:
+            'Third-party scripts add render-blocking time. Each external request adds latency that hurts Core Web Vitals.',
+          fix_suggestion:
+            'Use the Performance tab in Chrome DevTools to see which scripts are blocking rendering and defer them.',
+        });
+      }
+
+      // Spell check issues
+      if (spell_check.error_count > 0) {
+        issues.push({
+          type: 'content',
+          severity: spell_check.error_count >= 5 ? 'warning' : 'info',
+          title: `${spell_check.error_count} spelling error${spell_check.error_count > 1 ? 's' : ''} detected`,
+          description: `Found misspelled words: ${spell_check.errors
+            .slice(0, 3)
+            .map((e) => `"${e.word}" → "${e.suggestion}"`)
+            .join(', ')}. Spelling errors damage credibility and can affect user trust and rankings.`,
+          fix_suggestion:
+            'Run a spell check on all page content and correct errors. Consider using tools like Grammarly or Hemingway Editor before publishing.',
+        });
+      }
+
+      // Local rank issue
+      if (local_rank?.pack_present && !local_rank.in_local_pack) {
+        issues.push({
+          type: 'technical',
+          severity: 'warning',
+          title: 'Not appearing in Google local pack',
+          description: `Google is showing a local 3-pack for "${local_rank.search_query}" but your business was not detected in it. Competitors are capturing high-intent local traffic you are missing.`,
+          fix_suggestion:
+            'Claim/optimise your Google Business Profile, build local citations, add LocalBusiness schema, and collect more reviews.',
+        });
+      }
+
       const scored = this.scoreAll(technical, onpage, content);
 
-      console.log(`Audit ${this.domain}: overall=${scored.overall_score} tech=${scored.technical_score} onpage=${scored.onpage_score} content=${scored.content_score}`, {
-        response_time_ms: technical.response_time_ms,
-        page_size_bytes: technical.page_size_bytes,
-        request_count: technical.request_count,
-        title_len: onpage.title.length,
-        h1: onpage.h1,
-        alt_coverage: onpage.images.alt_coverage_pct,
-        og: onpage.open_graph,
-        schema: onpage.structured_data,
-        words: content.word_count,
-      });
+      console.log(
+        `Audit ${this.domain}: overall=${scored.overall_score} tech=${scored.technical_score} onpage=${scored.onpage_score} content=${scored.content_score}`,
+        {
+          response_time_ms: technical.response_time_ms,
+          page_size_bytes: technical.page_size_bytes,
+          request_count: technical.request_count,
+          title_len: onpage.title.length,
+          h1: onpage.h1,
+          alt_coverage: onpage.images.alt_coverage_pct,
+          og: onpage.open_graph,
+          schema: onpage.structured_data,
+          words: content.word_count,
+          issues: issues.length,
+        }
+      );
 
       return {
         ...scored,
@@ -231,6 +462,11 @@ export class SEOAuditEngine {
         onpage,
         content,
         issues,
+        ppc_signals,
+        spell_check,
+        local_grid,
+        local_rank,
+        security_headers,
         technical_deep,
       };
     } catch (error) {
@@ -317,6 +553,9 @@ export class SEOAuditEngine {
         } catch {
           /* keep */
         }
+
+        // Capture response headers for security analysis
+        this.responseHeaders = response.headers as Record<string, string | string[]>;
 
         return {
           html,
@@ -476,10 +715,166 @@ export class SEOAuditEngine {
       ''
     );
 
+    // --- Noindex detection ---
+    const robotsMeta = $('meta[name="robots"], meta[name="googlebot"]').attr('content') || '';
+    const noindex = /noindex/i.test(robotsMeta);
+
+    // --- H1 text quality ---
+    const h1Text = $('h1').first().text().trim();
+
+    // --- Heading hierarchy validation ---
+    const headingOrder: string[] = [];
+    $('h1, h2, h3, h4, h5, h6').each((_: any, el: any) => {
+      headingOrder.push($(el).prop('tagName').toLowerCase());
+    });
+    let headingHierarchyOk = true;
+    let lastLevel = 0;
+    for (const tag of headingOrder) {
+      const lvl = parseInt(tag[1]);
+      if (lvl - lastLevel > 1 && lastLevel > 0) {
+        headingHierarchyOk = false;
+        break;
+      }
+      lastLevel = lvl;
+    }
+
+    // --- Image optimisation signals ---
+    let imagesLazy = 0;
+    let imagesWithDimensions = 0;
+    images.each((_: any, el: any) => {
+      const loading = $(el).attr('loading') || '';
+      const w = $(el).attr('width');
+      const h = $(el).attr('height');
+      if (loading === 'lazy') imagesLazy++;
+      if (w && h) imagesWithDimensions++;
+    });
+
+    // --- Schema type extraction & basic validation ---
+    const schemaTypes: string[] = [];
+    $('script[type="application/ld+json"]').each((_: any, el: any) => {
+      try {
+        const parsed = JSON.parse($(el).html() || '{}');
+        const schemas = Array.isArray(parsed)
+          ? parsed
+          : parsed['@graph']
+            ? parsed['@graph']
+            : [parsed];
+        schemas.forEach((s: any) => {
+          if (s['@type'])
+            schemaTypes.push(Array.isArray(s['@type']) ? s['@type'][0] : s['@type']);
+        });
+      } catch {
+        /* invalid JSON-LD */
+      }
+    });
+
+    // --- Generic anchor text ---
+    const genericPhrases = new Set([
+      'click here',
+      'here',
+      'read more',
+      'learn more',
+      'more',
+      'this',
+      'link',
+      'website',
+      'page',
+    ]);
+    let genericAnchors = 0;
+    allLinks.each((_: any, el: any) => {
+      const text = ($(el).text() || '').trim().toLowerCase();
+      if (genericPhrases.has(text)) genericAnchors++;
+    });
+
+    // --- Keyword in title (real check vs top body keyword) ---
+    const bodyWords = ($('body').text() || '').toLowerCase();
+    const wordFreqMap: Record<string, number> = {};
+    const bodyWordsList = bodyWords.match(/\b[a-z]{4,}\b/g) || [];
+    bodyWordsList.forEach((w: string) => {
+      wordFreqMap[w] = (wordFreqMap[w] || 0) + 1;
+    });
+    const topBodyKeyword =
+      Object.entries(wordFreqMap).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    const titleKeywordPresent =
+      topBodyKeyword.length > 3 && title.toLowerCase().includes(topBodyKeyword);
+
+    // --- Third-party script count ---
+    let thirdPartyScripts = 0;
+    $('script[src]').each((_: any, el: any) => {
+      const src = $(el).attr('src') || '';
+      if (
+        (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//')) &&
+        !src.includes(this.domain)
+      ) {
+        thirdPartyScripts++;
+      }
+    });
+
+    // --- WebP image usage ---
+    let webpImages = 0;
+    images.each((_: any, el: any) => {
+      const src = ($(el).attr('src') || '').toLowerCase();
+      const srcset = ($(el).attr('srcset') || '').toLowerCase();
+      if (src.includes('.webp') || srcset.includes('.webp')) webpImages++;
+    });
+
+    // --- Hreflang tags ---
+    const hreflangCount = $('link[rel="alternate"][hreflang]').length;
+
+    // --- Social media presence (detect links in HTML) ---
+    const socialPresence = {
+      facebook: $('a[href*="facebook.com"]').length > 0,
+      instagram: $('a[href*="instagram.com"]').length > 0,
+      linkedin: $('a[href*="linkedin.com"]').length > 0,
+      twitter: $('a[href*="twitter.com"], a[href*="x.com"]').length > 0,
+      youtube: $('a[href*="youtube.com"]').length > 0,
+    };
+
+    // --- GDPR / privacy compliance signals ---
+    const rawHtml = $.html() || '';
+    const hasPrivacyPolicy =
+      $('a[href*="privacy"]').length > 0 || /privacy[-_]?policy|\/privacy\b/i.test(rawHtml);
+    const hasCookieConsent =
+      /cookieyes|onetrust|cookiebot|cookie.*consent|accept.*cookie|cookie.*banner|gdpr.*consent/i.test(
+        rawHtml
+      );
+
+    // --- CMS / technology detection ---
+    let cmsDetected = '';
+    const cmsChecks: Array<{ name: string; pattern: RegExp }> = [
+      { name: 'WordPress', pattern: /wp-content|wp-includes/i },
+      { name: 'Shopify', pattern: /cdn\.shopify|myshopify\.com/i },
+      { name: 'Squarespace', pattern: /squarespace\.com/i },
+      { name: 'Wix', pattern: /wix\.com|wixsite\.com/i },
+      { name: 'Webflow', pattern: /\.webflow\./i },
+      { name: 'HubSpot', pattern: /hs-analytics|hubspot\.com\/hs/i },
+      { name: 'Drupal', pattern: /sites\/default\/files|drupal\.js/i },
+      { name: 'Joomla', pattern: /\/media\/jui\/|joomla/i },
+    ];
+    for (const { name, pattern } of cmsChecks) {
+      if (pattern.test(rawHtml)) {
+        cmsDetected = name;
+        break;
+      }
+    }
+    if (!cmsDetected) {
+      const generatorContent = $('meta[name="generator"]').attr('content') || '';
+      if (generatorContent) cmsDetected = generatorContent.split(' ')[0];
+    }
+
+    // --- Accessibility quick score ---
+    const hasMainLandmark = $('main').length > 0;
+    const ariaLabelCount = $('[aria-label]').length;
+    let accessibilityScore = 0;
+    if (lang) accessibilityScore += 35;
+    if (hasMainLandmark) accessibilityScore += 30;
+    if (ariaLabelCount >= 3) accessibilityScore += 25;
+    if (missingAlt === 0 && totalImages > 0) accessibilityScore += 10;
+
     return {
       title: {
         length: titleLength,
-        keyword: titleLength > 0,
+        keyword: titleKeywordPresent,
         optimal: titleOptimal,
         text: title.slice(0, 200),
       },
@@ -513,6 +908,21 @@ export class SEOAuditEngine {
         external_nofollow: externalNofollow,
         total: internalLinks + externalLinks,
       },
+      noindex,
+      heading_hierarchy_ok: headingHierarchyOk,
+      h1_text: h1Text,
+      images_lazy: imagesLazy,
+      images_with_dimensions: imagesWithDimensions,
+      schema_types: schemaTypes,
+      generic_anchors: genericAnchors,
+      social_presence: socialPresence,
+      has_privacy_policy: hasPrivacyPolicy,
+      has_cookie_consent: hasCookieConsent,
+      cms_detected: cmsDetected || undefined,
+      accessibility_score: accessibilityScore,
+      third_party_scripts: thirdPartyScripts,
+      webp_images: webpImages,
+      hreflang_count: hreflangCount,
     };
   }
 
@@ -939,6 +1349,115 @@ export class SEOAuditEngine {
       });
     }
 
+    // Noindex detection — critical
+    if (onpage.noindex) {
+      issues.push({
+        type: 'technical',
+        severity: 'critical',
+        title: 'Page is set to noindex — blocked from Google',
+        description:
+          'Your robots meta tag includes "noindex", which tells search engines not to index this page. It will not appear in search results.',
+        fix_suggestion:
+          'Remove the noindex directive from your robots meta tag unless you intentionally want to hide this page from search engines.',
+      });
+    }
+
+    // Heading hierarchy
+    if (onpage.heading_hierarchy_ok === false) {
+      issues.push({
+        type: 'onpage',
+        severity: 'warning',
+        title: 'Heading hierarchy is broken',
+        description:
+          'Your headings skip levels (e.g. H1 directly to H3, or H2 before H1). This confuses both users and search engine crawlers.',
+        fix_suggestion:
+          'Ensure headings follow a logical order: H1 → H2 → H3 without skipping levels.',
+      });
+    }
+
+    // H1 text too short
+    if (onpage.h1_text && onpage.h1_text.length < 10 && onpage.h1 === 1) {
+      issues.push({
+        type: 'onpage',
+        severity: 'warning',
+        title: 'H1 heading is too short',
+        description: `Your H1 is "${onpage.h1_text}" (${onpage.h1_text.length} characters). A descriptive H1 with your target keyword significantly improves relevance signals.`,
+        fix_suggestion:
+          'Rewrite your H1 to be 20–70 characters and include your primary keyword naturally.',
+      });
+    }
+
+    // Keyword not in title
+    if (onpage.title.length > 0 && !onpage.title.keyword) {
+      issues.push({
+        type: 'onpage',
+        severity: 'warning',
+        title: 'Target keyword missing from page title',
+        description:
+          'Your page title does not appear to contain the most prominent keyword found in your content. Google heavily weights the title tag for keyword relevance.',
+        fix_suggestion:
+          'Include your primary keyword naturally in the first half of your title tag.',
+      });
+    }
+
+    // Image lazy loading
+    if (
+      onpage.images &&
+      onpage.images.total > 3 &&
+      (onpage.images_lazy ?? 0) / onpage.images.total < 0.5
+    ) {
+      issues.push({
+        type: 'technical',
+        severity: 'info',
+        title: 'Images not using lazy loading',
+        description: `Only ${onpage.images_lazy ?? 0} of ${onpage.images.total} images have loading="lazy". Lazy loading defers offscreen images, improving page speed and Core Web Vitals.`,
+        fix_suggestion:
+          'Add loading="lazy" to all <img> tags that are not in the initial viewport.',
+      });
+    }
+
+    // Image dimensions missing
+    if (
+      onpage.images &&
+      onpage.images.total > 3 &&
+      (onpage.images_with_dimensions ?? 0) / onpage.images.total < 0.5
+    ) {
+      issues.push({
+        type: 'technical',
+        severity: 'info',
+        title: 'Images missing width/height attributes',
+        description: `Only ${onpage.images_with_dimensions ?? 0} of ${onpage.images.total} images specify width and height. Missing dimensions cause Cumulative Layout Shift (CLS), harming your Core Web Vitals score.`,
+        fix_suggestion:
+          'Add explicit width and height attributes to all <img> tags to prevent layout shifts.',
+      });
+    }
+
+    // Generic anchor text
+    if ((onpage.generic_anchors ?? 0) > 2) {
+      issues.push({
+        type: 'onpage',
+        severity: 'info',
+        title: `${onpage.generic_anchors} links use generic anchor text`,
+        description:
+          'Links with anchor text like "click here", "read more", or "here" provide no keyword context to search engines and miss an opportunity to pass relevance signals.',
+        fix_suggestion:
+          'Replace generic anchor text with descriptive keywords that describe the destination page.',
+      });
+    }
+
+    // Schema type validation — has JSON-LD but no recognised @type
+    if (onpage.structured_data && onpage.schema_types && onpage.schema_types.length === 0) {
+      issues.push({
+        type: 'onpage',
+        severity: 'warning',
+        title: 'Structured data found but no valid @type detected',
+        description:
+          'JSON-LD was found but no schema @type could be parsed. Invalid or empty schema data will not generate rich results in Google.',
+        fix_suggestion:
+          "Ensure your JSON-LD includes a valid @type (e.g. Organization, LocalBusiness, Article, FAQPage) and passes Google's Rich Results Test.",
+      });
+    }
+
     if (onpage.links && onpage.links.external > 0) {
       const externalRatio =
         onpage.links.total > 0 ? onpage.links.external / onpage.links.total : 0;
@@ -1042,7 +1561,8 @@ export class SEOAuditEngine {
         severity: 'warning',
         title: 'Slow Largest Contentful Paint (LCP)',
         description: `Your LCP is ${technical.lcp.toFixed(2)}s. Target is under 2.5s.`,
-        fix_suggestion: 'Optimize images, reduce server response time, and eliminate render-blocking resources.',
+        fix_suggestion:
+          'Optimize images, reduce server response time, and eliminate render-blocking resources.',
       });
     }
 
@@ -1062,7 +1582,74 @@ export class SEOAuditEngine {
         severity: 'warning',
         title: 'High Cumulative Layout Shift (CLS)',
         description: `Your CLS is ${technical.cls.toFixed(3)}. Target is under 0.1.`,
-        fix_suggestion: 'Add size attributes to images and videos; avoid inserting content above existing content.',
+        fix_suggestion:
+          'Add size attributes to images and videos; avoid inserting content above existing content.',
+      });
+    }
+
+    // Privacy policy — UK GDPR legal requirement
+    if (onpage.has_privacy_policy === false) {
+      issues.push({
+        type: 'technical',
+        severity: 'warning',
+        title: 'No privacy policy detected',
+        description:
+          'UK GDPR and ICO regulations require businesses to have a clearly accessible privacy policy. None was detected on your site.',
+        fix_suggestion:
+          'Add a privacy policy page and link it in your footer. Include how you collect, store, and use personal data.',
+      });
+    }
+
+    // Cookie consent — UK GDPR requirement
+    if (onpage.has_cookie_consent === false) {
+      issues.push({
+        type: 'technical',
+        severity: 'warning',
+        title: 'No cookie consent mechanism found',
+        description:
+          'UK GDPR requires informed consent before setting non-essential cookies. No cookie consent banner or script was detected on your site.',
+        fix_suggestion:
+          'Install a cookie consent tool (CookieYes, OneTrust, or Cookiebot) and configure it for UK/GDPR compliance.',
+      });
+    }
+
+    // Social media presence
+    const socialCount = Object.values(onpage.social_presence ?? {}).filter(Boolean).length;
+    if (socialCount === 0) {
+      issues.push({
+        type: 'onpage',
+        severity: 'info',
+        title: 'No social media profile links found',
+        description:
+          'Social signals contribute to brand authority and local SEO rankings. No Facebook, Instagram, LinkedIn, Twitter/X, or YouTube links were detected on your homepage.',
+        fix_suggestion:
+          'Add links to your social media profiles in your site header or footer to build brand signals.',
+      });
+    }
+
+    // Accessibility — missing lang attribute
+    if (onpage.lang === false) {
+      issues.push({
+        type: 'technical',
+        severity: 'warning',
+        title: 'Missing language attribute on <html>',
+        description:
+          'The lang attribute tells browsers and screen readers what language your content is in. Required for WCAG 2.1 accessibility compliance and used by Google for language detection.',
+        fix_suggestion:
+          'Add lang="en" (or your content\'s primary language) to your opening <html> tag.',
+      });
+    }
+
+    // Low accessibility score
+    if ((onpage.accessibility_score ?? 100) < 40) {
+      issues.push({
+        type: 'technical',
+        severity: 'info',
+        title: 'Accessibility signals are weak',
+        description:
+          'Your page is missing key accessibility markers: semantic landmarks (<main>), ARIA labels, and language declarations. This affects both users and screen readers.',
+        fix_suggestion:
+          'Add <main> landmark element, include aria-label attributes on interactive elements, and ensure all images have descriptive alt text.',
       });
     }
 
