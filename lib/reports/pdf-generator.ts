@@ -1,4 +1,6 @@
 import PDFDocument from 'pdfkit';
+import fs from 'fs';
+import path from 'path';
 
 export interface ReportData {
   domain: string;
@@ -34,12 +36,18 @@ export interface ReportData {
   };
 }
 
-const COLORS = {
-  ink: '#0f172a',
-  muted: '#64748b',
-  light: '#f1f5f9',
+/** SEOInForce website theme */
+const THEME = {
+  black: '#0a0a0c',
+  ink: '#111111',
+  muted: '#6b7280',
+  silver: '#C0C0C0',
+  light: '#f7f7f8',
   white: '#ffffff',
-  border: '#e2e8f0',
+  border: '#e5e7eb',
+  gold: '#FFD700',
+  goldDark: '#b8860b',
+  goldSoft: '#fff8dc',
   pass: '#16a34a',
   passBg: '#dcfce7',
   warn: '#d97706',
@@ -48,31 +56,57 @@ const COLORS = {
   criticalBg: '#fee2e2',
   info: '#2563eb',
   infoBg: '#dbeafe',
-  accent: '#0f766e',
-  accentDark: '#134e4a',
-  gold: '#b45309',
 };
 
+const PAGE_BOTTOM = 780; // keep content above footer; A4 height ≈ 841
+
 function scoreTone(score: number) {
-  if (score >= 80) return { fg: COLORS.pass, bg: COLORS.passBg, label: 'Strong' };
-  if (score >= 60) return { fg: COLORS.warn, bg: COLORS.warnBg, label: 'Needs work' };
-  return { fg: COLORS.critical, bg: COLORS.criticalBg, label: 'Critical' };
+  if (score >= 80) return { fg: THEME.pass, bg: THEME.passBg, label: 'Strong' };
+  if (score >= 60) return { fg: THEME.warn, bg: THEME.warnBg, label: 'Needs work' };
+  return { fg: THEME.critical, bg: THEME.criticalBg, label: 'Critical' };
 }
 
 function severityTone(severity: string) {
-  if (severity === 'critical') return { fg: COLORS.critical, bg: COLORS.criticalBg, label: 'CRITICAL' };
-  if (severity === 'warning') return { fg: COLORS.warn, bg: COLORS.warnBg, label: 'WARNING' };
-  if (severity === 'good') return { fg: COLORS.pass, bg: COLORS.passBg, label: 'PASSED' };
-  return { fg: COLORS.info, bg: COLORS.infoBg, label: 'INFO' };
+  if (severity === 'critical') return { fg: THEME.critical, bg: THEME.criticalBg, label: 'CRITICAL' };
+  if (severity === 'warning') return { fg: THEME.warn, bg: THEME.warnBg, label: 'WARNING' };
+  if (severity === 'good') return { fg: THEME.pass, bg: THEME.passBg, label: 'PASSED' };
+  return { fg: THEME.info, bg: THEME.infoBg, label: 'INFO' };
+}
+
+function resolveLogoPath(whiteLabelLogo?: string): string | null {
+  const candidates = [
+    whiteLabelLogo,
+    path.join(process.cwd(), 'public', 'logo-report.png'),
+    path.join(process.cwd(), 'public', 'logo.png'),
+  ].filter(Boolean) as string[];
+
+  for (const p of candidates) {
+    try {
+      if (p.startsWith('http')) continue;
+      const local = p.startsWith('/')
+        ? path.join(process.cwd(), 'public', p.replace(/^\//, ''))
+        : p;
+      if (fs.existsSync(local)) return local;
+    } catch {
+      /* skip */
+    }
+  }
+  return null;
 }
 
 export class PDFReportGenerator {
+  private logoPath: string | null = null;
+
   async generateReport(data: ReportData): Promise<Buffer> {
+    this.logoPath = resolveLogoPath(data.whiteLabel?.logo);
+
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({
           size: 'A4',
-          margins: { top: 48, bottom: 56, left: 48, right: 48 },
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+          bufferPages: true,
+          autoFirstPage: true,
           info: {
             Title: `SEO Audit Report — ${data.domain}`,
             Author: data.whiteLabel?.companyName || 'SEOInForce',
@@ -85,16 +119,31 @@ export class PDFReportGenerator {
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
 
+        // Prevent accidental auto pages from flow layout
+        let allowAutoPage = false;
+        doc.on('pageAdded', () => {
+          if (!allowAutoPage) {
+            // Content should only add pages via explicit doc.addPage()
+          }
+        });
+
+        const addPage = () => {
+          allowAutoPage = true;
+          doc.addPage();
+          allowAutoPage = false;
+        };
+
         this.addCoverPage(doc, data);
-        doc.addPage();
+        addPage();
         this.addCategoryBreakdown(doc, data);
-        doc.addPage();
-        this.addIssuesPage(doc, data);
-        doc.addPage();
-        this.addChecklistPage(doc, data);
-        doc.addPage();
+        addPage();
+        this.addIssuesPage(doc, data, addPage);
+        addPage();
+        this.addChecklistPage(doc, data, addPage);
+        addPage();
         this.addRecommendationsPage(doc, data);
 
+        this.applyFooters(doc, data);
         doc.end();
       } catch (error) {
         reject(error);
@@ -107,183 +156,130 @@ export class PDFReportGenerator {
   }
 
   private primary(data: ReportData) {
-    return data.whiteLabel?.colors?.primary || COLORS.accent;
+    return data.whiteLabel?.colors?.primary || THEME.gold;
   }
 
-  private ensureSpace(doc: any, needed = 80) {
-    if (doc.y > doc.page.height - 56 - needed) {
-      doc.addPage();
-      this.drawPageChrome(doc, this._lastData!);
-    }
-  }
-
-  private _lastData: ReportData | null = null;
-
-  private drawPageChrome(doc: any, data: ReportData) {
-    this._lastData = data;
-    const primary = this.primary(data);
-    // Top accent bar
-    doc.save();
-    doc.rect(0, 0, doc.page.width, 6).fill(primary);
-    doc.restore();
-
-    // Footer
-    const footerY = doc.page.height - 36;
-    doc.save();
+  /** Absolute text that never triggers PDFKit page breaks */
+  private t(
+    doc: any,
+    str: string,
+    x: number,
+    y: number,
+    opts: {
+      width?: number;
+      align?: 'left' | 'center' | 'right' | 'justify';
+      fontSize?: number;
+      color?: string;
+      bold?: boolean;
+      characterSpacing?: number;
+    } = {}
+  ) {
     doc
-      .fontSize(8)
-      .fillColor(COLORS.muted)
-      .text(this.brandName(data), 48, footerY, { continued: false, width: 200 });
-    doc
-      .fontSize(8)
-      .fillColor(COLORS.muted)
-      .text(data.domain, 48, footerY, { align: 'center', width: doc.page.width - 96 });
-    doc
-      .fontSize(8)
-      .fillColor(COLORS.muted)
-      .text(`Page ${doc.bufferedPageRange().start + doc.bufferedPageRange().count}`, 48, footerY, {
-        align: 'right',
-        width: doc.page.width - 96,
+      .font(opts.bold ? 'Helvetica-Bold' : 'Helvetica')
+      .fontSize(opts.fontSize ?? 10)
+      .fillColor(opts.color ?? THEME.ink)
+      .text(String(str ?? ''), x, y, {
+        width: opts.width,
+        align: opts.align,
+        characterSpacing: opts.characterSpacing,
+        lineBreak: false,
+        continued: false,
       });
-    doc.restore();
   }
 
-  private addCoverPage(doc: any, data: ReportData) {
-    this._lastData = data;
-    const primary = this.primary(data);
-    const tone = scoreTone(data.overall_score);
-    const pageW = doc.page.width;
-    const pageH = doc.page.height;
-
-    // Full-bleed header band
-    doc.save();
-    doc.rect(0, 0, pageW, 220).fill(COLORS.accentDark);
-    doc.rect(0, 214, pageW, 6).fill(primary);
-    doc.restore();
-
-    doc
-      .fillColor(COLORS.white)
-      .fontSize(11)
-      .text('SEO AUDIT REPORT', 48, 40, { characterSpacing: 2 });
-
-    doc
-      .fontSize(26)
-      .fillColor(COLORS.white)
-      .text(this.brandName(data), 48, 62, { width: pageW - 96 });
-
-    if (data.whiteLabel?.clientName || data.whiteLabel?.agencyName) {
-      doc
-        .fontSize(10)
-        .fillColor('#99f6e4')
-        .text(
-          [
-            data.whiteLabel.clientName ? `Prepared for ${data.whiteLabel.clientName}` : null,
-            data.whiteLabel.agencyName ? `by ${data.whiteLabel.agencyName}` : null,
-          ]
-            .filter(Boolean)
-            .join(' '),
-          48,
-          98,
-          { width: pageW - 96 }
-        );
+  /** Single-line clipped text — never triggers PDFKit page breaks */
+  private tw(
+    doc: PDFKit.PDFDocument,
+    str: string,
+    x: number,
+    y: number,
+    width: number,
+    _height: number,
+    opts: { fontSize?: number; color?: string; bold?: boolean } = {}
+  ) {
+    const fontSize = opts.fontSize ?? 9;
+    doc.font(opts.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(fontSize);
+    const raw = String(str ?? '').replace(/\s+/g, ' ').trim();
+    // Manually truncate so we never need wrapping (wrapping causes blank pages)
+    let text = raw;
+    while (text.length > 3 && doc.widthOfString(text) > width) {
+      text = text.slice(0, -2);
     }
-
-    doc
-      .fontSize(18)
-      .fillColor(COLORS.white)
-      .text(data.domain, 48, 130, { width: pageW - 96 });
-
-    doc
-      .fontSize(10)
-      .fillColor('#99f6e4')
-      .text(`Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`, 48, 160);
-
-    // Score card
-    const cardX = 48;
-    const cardY = 250;
-    const cardW = pageW - 96;
-    doc.save();
-    doc.roundedRect(cardX, cardY, cardW, 160, 12).fill(COLORS.white);
-    doc.roundedRect(cardX, cardY, cardW, 160, 12).strokeColor(COLORS.border).lineWidth(1).stroke();
-    doc.restore();
-
-    // Score circle (approx with filled rounded box)
-    doc.save();
-    doc.circle(cardX + 90, cardY + 80, 52).fill(tone.bg);
-    doc.circle(cardX + 90, cardY + 80, 52).strokeColor(tone.fg).lineWidth(3).stroke();
-    doc.restore();
-
-    doc
-      .fontSize(36)
-      .fillColor(tone.fg)
-      .text(String(data.overall_score), cardX + 58, cardY + 58, { width: 64, align: 'center' });
-    doc
-      .fontSize(9)
-      .fillColor(tone.fg)
-      .text('/ 100', cardX + 58, cardY + 98, { width: 64, align: 'center' });
-
-    doc
-      .fontSize(16)
-      .fillColor(COLORS.ink)
-      .text('Overall SEO Score', cardX + 170, cardY + 40);
-    doc
-      .fontSize(11)
-      .fillColor(COLORS.muted)
-      .text(
-        `Status: ${tone.label}. This score reflects live checks against the homepage HTML, metadata, structure, performance signals, and security.`,
-        cardX + 170,
-        cardY + 68,
-        { width: cardW - 200 }
-      );
-
-    // Mini category pills
-    const cats = this.resolveCategories(data);
-    const pillY = cardY + 120;
-    let pillX = cardX + 170;
-    cats.slice(0, 4).forEach((cat) => {
-      const t = scoreTone(cat.score);
-      doc.save();
-      doc.roundedRect(pillX, pillY, 72, 22, 6).fill(t.bg);
-      doc.restore();
-      doc
-        .fontSize(8)
-        .fillColor(t.fg)
-        .text(`${cat.short} ${cat.score}`, pillX, pillY + 6, { width: 72, align: 'center' });
-      pillX += 80;
+    if (text !== raw && text.length > 3) text = `${text.slice(0, -1)}…`;
+    doc.fillColor(opts.color ?? THEME.muted).text(text, x, y, {
+      width,
+      lineBreak: false,
+      continued: false,
     });
+  }
 
-    // Issue summary strip
-    const critical = data.issues.filter((i) => i.severity === 'critical').length;
-    const warnings = data.issues.filter((i) => i.severity === 'warning').length;
-    const info = data.issues.filter((i) => i.severity === 'info' || !i.severity).length;
-    const stripY = 440;
-
-    doc.fontSize(13).fillColor(COLORS.ink).text('Findings at a glance', 48, stripY);
-    const boxes = [
-      { label: 'Critical', count: critical, fg: COLORS.critical, bg: COLORS.criticalBg },
-      { label: 'Warnings', count: warnings, fg: COLORS.warn, bg: COLORS.warnBg },
-      { label: 'Opportunities', count: info, fg: COLORS.info, bg: COLORS.infoBg },
-      { label: 'Total checks', count: data.issues.length, fg: COLORS.accent, bg: '#ccfbf1' },
-    ];
-    boxes.forEach((b, i) => {
-      const x = 48 + i * 128;
-      const y = stripY + 28;
-      doc.save();
-      doc.roundedRect(x, y, 116, 72, 10).fill(b.bg);
-      doc.restore();
-      doc.fontSize(22).fillColor(b.fg).text(String(b.count), x, y + 14, { width: 116, align: 'center' });
-      doc.fontSize(9).fillColor(COLORS.ink).text(b.label, x, y + 46, { width: 116, align: 'center' });
+  private drawLogoMark(doc: PDFKit.PDFDocument, x: number, y: number, size = 28) {
+    if (this.logoPath) {
+      try {
+        doc.image(this.logoPath, x, y, { width: size, height: size, fit: [size, size] });
+        return;
+      } catch {
+        /* vector fallback */
+      }
+    }
+    doc.save();
+    doc.roundedRect(x, y, size, size, 6).fill(THEME.gold);
+    doc.restore();
+    this.t(doc, 'S', x, y + size * 0.28, {
+      width: size,
+      align: 'center',
+      fontSize: size * 0.4,
+      bold: true,
+      color: THEME.black,
     });
+  }
 
-    doc
-      .fontSize(9)
-      .fillColor(COLORS.muted)
-      .text(
-        'This report analyzes the live homepage response: title & meta length, headings, image alt coverage, canonical, robots.txt, sitemap, schema, Open Graph, page weight, resource count, and response time.',
-        48,
-        570,
-        { width: pageW - 96, align: 'left' }
-      );
+  private drawHeaderBar(doc: PDFKit.PDFDocument, data: ReportData, subtitle: string) {
+    const pageW = doc.page.width;
+    const primary = this.primary(data);
+    doc.save();
+    doc.rect(0, 0, pageW, 52).fill(THEME.black);
+    doc.rect(0, 52, pageW, 3).fill(primary);
+    doc.restore();
+    this.drawLogoMark(doc, 48, 12, 28);
+    this.t(doc, this.brandName(data), 86, 14, {
+      fontSize: 12,
+      bold: true,
+      color: THEME.white,
+    });
+    this.t(doc, subtitle, 86, 30, { fontSize: 9, color: THEME.gold });
+  }
+
+  private applyFooters(doc: PDFKit.PDFDocument, data: ReportData) {
+    const range = doc.bufferedPageRange();
+    for (let i = 0; i < range.count; i++) {
+      doc.switchToPage(range.start + i);
+      const pageW = doc.page.width;
+      const pageH = doc.page.height;
+      const footerY = pageH - 36;
+
+      doc.save();
+      doc.moveTo(48, pageH - 48).lineTo(pageW - 48, pageH - 48).strokeColor(THEME.border).lineWidth(0.7).stroke();
+      doc.restore();
+
+      this.t(doc, this.brandName(data), 48, footerY, {
+        width: 150,
+        fontSize: 8,
+        color: THEME.muted,
+      });
+      this.t(doc, data.domain, 48, footerY, {
+        width: pageW - 96,
+        align: 'center',
+        fontSize: 8,
+        color: THEME.muted,
+      });
+      this.t(doc, `Page ${i + 1} of ${range.count}`, 48, footerY, {
+        width: pageW - 96,
+        align: 'right',
+        fontSize: 8,
+        color: THEME.muted,
+      });
+    }
   }
 
   private resolveCategories(data: ReportData) {
@@ -297,168 +293,363 @@ export class PDFReportGenerator {
     }
     return [
       { name: 'Basic SEO', short: 'Basic', score: data.onpage_score },
-      { name: 'Advanced SEO', short: 'Advanced', score: Math.round((data.onpage_score + data.technical_score) / 2) },
+      {
+        name: 'Advanced SEO',
+        short: 'Advanced',
+        score: Math.round((data.onpage_score + data.technical_score) / 2),
+      },
       { name: 'Performance', short: 'Perf', score: data.technical_score },
       { name: 'Security', short: 'Security', score: data.technical?.https ? 85 : 40 },
     ];
   }
 
-  private addCategoryBreakdown(doc: any, data: ReportData) {
-    this.drawPageChrome(doc, data);
-    doc.y = 36;
+  private clientIssues(data: ReportData) {
+    return (data.issues || []).filter((i) => {
+      const blob = `${i.title} ${i.description} ${i.fix_suggestion}`.toLowerCase();
+      if (blob.includes('google_pagespeed_api_key')) return false;
+      if (blob.includes('not measured')) return false;
+      if (blob.includes('pagespeed') && blob.includes('set')) return false;
+      return true;
+    });
+  }
 
-    doc.fontSize(20).fillColor(COLORS.ink).text('Score Breakdown by Category', 48, 36);
-    doc
-      .fontSize(10)
-      .fillColor(COLORS.muted)
-      .text('Each category is scored from live page data. Lower scores highlight where to focus first.', 48, 64, {
-        width: doc.page.width - 96,
-      });
+  private addCoverPage(doc: PDFKit.PDFDocument, data: ReportData) {
+    const pageW = doc.page.width;
+    const primary = this.primary(data);
+    const tone = scoreTone(data.overall_score);
+    const issues = this.clientIssues(data);
 
-    const cats = this.resolveCategories(data);
-    let y = 100;
-    cats.forEach((cat) => {
-      const tone = scoreTone(cat.score);
-      doc.save();
-      doc.roundedRect(48, y, doc.page.width - 96, 78, 10).fill(COLORS.light);
-      doc.restore();
+    doc.save();
+    doc.rect(0, 0, pageW, 200).fill(THEME.black);
+    doc.rect(0, 197, pageW, 5).fill(primary);
+    doc.restore();
 
-      doc.fontSize(14).fillColor(COLORS.ink).text(cat.name, 64, y + 16);
-      doc.fontSize(20).fillColor(tone.fg).text(`${cat.score}`, doc.page.width - 120, y + 14, {
-        width: 50,
-        align: 'right',
-      });
-      doc.fontSize(9).fillColor(tone.fg).text(tone.label, doc.page.width - 120, y + 40, {
-        width: 50,
-        align: 'right',
-      });
-
-      // Progress bar
-      const barX = 64;
-      const barY = y + 48;
-      const barW = doc.page.width - 220;
-      doc.save();
-      doc.roundedRect(barX, barY, barW, 10, 5).fill(COLORS.border);
-      doc.roundedRect(barX, barY, Math.max(4, (cat.score / 100) * barW), 10, 5).fill(tone.fg);
-      doc.restore();
-
-      y += 92;
+    this.drawLogoMark(doc, 48, 32, 36);
+    this.t(doc, 'SEO AUDIT REPORT', 96, 36, {
+      fontSize: 10,
+      color: THEME.gold,
+      characterSpacing: 1.2,
+    });
+    this.t(doc, this.brandName(data), 96, 54, {
+      fontSize: 22,
+      bold: true,
+      color: THEME.white,
     });
 
-    // Secondary scores
-    y += 10;
-    doc.fontSize(13).fillColor(COLORS.ink).text('Legacy category scores', 48, y);
-    y += 24;
-    const legacy = [
+    if (data.whiteLabel?.clientName || data.whiteLabel?.agencyName) {
+      this.t(
+        doc,
+        [
+          data.whiteLabel.clientName ? `Prepared for ${data.whiteLabel.clientName}` : null,
+          data.whiteLabel.agencyName ? `by ${data.whiteLabel.agencyName}` : null,
+        ]
+          .filter(Boolean)
+          .join(' '),
+        48,
+        105,
+        { fontSize: 10, color: THEME.silver, width: pageW - 96 }
+      );
+    }
+
+    this.t(doc, data.domain, 48, 130, {
+      fontSize: 16,
+      bold: true,
+      color: THEME.white,
+      width: pageW - 96,
+    });
+    this.t(
+      doc,
+      `Generated ${new Date().toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })}`,
+      48,
+      156,
+      { fontSize: 10, color: THEME.silver }
+    );
+
+    const cardY = 230;
+    doc.save();
+    doc.roundedRect(48, cardY, pageW - 96, 145, 12).fill(THEME.white);
+    doc.roundedRect(48, cardY, pageW - 96, 145, 12).strokeColor(THEME.border).lineWidth(1).stroke();
+    doc.circle(118, cardY + 72, 46).fill(tone.bg);
+    doc.circle(118, cardY + 72, 46).strokeColor(tone.fg).lineWidth(3).stroke();
+    doc.restore();
+
+    this.t(doc, String(data.overall_score), 86, cardY + 50, {
+      width: 64,
+      align: 'center',
+      fontSize: 30,
+      bold: true,
+      color: tone.fg,
+    });
+    this.t(doc, '/ 100', 86, cardY + 86, {
+      width: 64,
+      align: 'center',
+      fontSize: 9,
+      color: tone.fg,
+    });
+    this.t(doc, 'Overall SEO Score', 185, cardY + 30, {
+      fontSize: 14,
+      bold: true,
+      color: THEME.ink,
+    });
+    this.tw(
+      doc,
+      `Status: ${tone.label}. Based on live homepage HTML, metadata, structure, performance, and security checks.`,
+      185,
+      cardY + 52,
+      pageW - 270,
+      36,
+      { fontSize: 10, color: THEME.muted }
+    );
+
+    let pillX = 185;
+    this.resolveCategories(data).forEach((cat) => {
+      const t = scoreTone(cat.score);
+      doc.save();
+      doc.roundedRect(pillX, cardY + 105, 70, 20, 5).fill(t.bg);
+      doc.restore();
+      this.t(doc, `${cat.short} ${cat.score}`, pillX, cardY + 110, {
+        width: 70,
+        align: 'center',
+        fontSize: 8,
+        bold: true,
+        color: t.fg,
+      });
+      pillX += 78;
+    });
+
+    const stripY = 400;
+    this.t(doc, 'Findings at a glance', 48, stripY, {
+      fontSize: 13,
+      bold: true,
+      color: THEME.ink,
+    });
+
+    const critical = issues.filter((i) => i.severity === 'critical').length;
+    const warnings = issues.filter((i) => i.severity === 'warning').length;
+    const info = issues.filter((i) => i.severity === 'info' || !i.severity).length;
+    [
+      { label: 'Critical', count: critical, fg: THEME.critical, bg: THEME.criticalBg },
+      { label: 'Warnings', count: warnings, fg: THEME.warn, bg: THEME.warnBg },
+      { label: 'Opportunities', count: info, fg: THEME.info, bg: THEME.infoBg },
+      { label: 'Total', count: issues.length, fg: THEME.goldDark, bg: THEME.goldSoft },
+    ].forEach((b, i) => {
+      const x = 48 + i * 128;
+      const y = stripY + 24;
+      doc.save();
+      doc.roundedRect(x, y, 116, 60, 10).fill(b.bg);
+      doc.restore();
+      this.t(doc, String(b.count), x, y + 10, {
+        width: 116,
+        align: 'center',
+        fontSize: 20,
+        bold: true,
+        color: b.fg,
+      });
+      this.t(doc, b.label, x, y + 36, {
+        width: 116,
+        align: 'center',
+        fontSize: 9,
+        color: THEME.ink,
+      });
+    });
+
+    this.tw(
+      doc,
+      'Checks include title & meta length, headings, image alt coverage, canonical, robots.txt, sitemap, schema, Open Graph, page weight, resource count, and response time.',
+      48,
+      520,
+      pageW - 96,
+      40,
+      { fontSize: 9, color: THEME.muted }
+    );
+  }
+
+  private addCategoryBreakdown(doc: PDFKit.PDFDocument, data: ReportData) {
+    this.drawHeaderBar(doc, data, 'Score breakdown');
+    const pageW = doc.page.width;
+    let y = 70;
+
+    this.t(doc, 'Score Breakdown by Category', 48, y, {
+      fontSize: 18,
+      bold: true,
+      color: THEME.ink,
+    });
+    y += 26;
+    this.t(doc, 'Each category is scored from live page data.', 48, y, {
+      fontSize: 10,
+      color: THEME.muted,
+      width: pageW - 96,
+    });
+    y += 28;
+
+    this.resolveCategories(data).forEach((cat) => {
+      const tone = scoreTone(cat.score);
+      doc.save();
+      doc.roundedRect(48, y, pageW - 96, 66, 10).fill(THEME.light);
+      doc.restore();
+      this.t(doc, cat.name, 64, y + 12, { fontSize: 13, bold: true });
+      this.t(doc, String(cat.score), pageW - 120, y + 10, {
+        width: 50,
+        align: 'right',
+        fontSize: 18,
+        bold: true,
+        color: tone.fg,
+      });
+      this.t(doc, tone.label, pageW - 120, y + 34, {
+        width: 50,
+        align: 'right',
+        fontSize: 8,
+        color: tone.fg,
+      });
+      const barW = pageW - 220;
+      doc.save();
+      doc.roundedRect(64, y + 44, barW, 8, 4).fill(THEME.border);
+      doc.roundedRect(64, y + 44, Math.max(4, (cat.score / 100) * barW), 8, 4).fill(tone.fg);
+      doc.restore();
+      y += 78;
+    });
+
+    y += 6;
+    this.t(doc, 'Supporting scores', 48, y, { fontSize: 12, bold: true });
+    y += 22;
+    [
       { name: 'Technical', score: data.technical_score },
       { name: 'On-Page', score: data.onpage_score },
       { name: 'Content', score: data.content_score },
-    ];
-    legacy.forEach((item, i) => {
+    ].forEach((item, i) => {
       const x = 48 + i * 165;
-      const t = scoreTone(item.score);
+      const tone = scoreTone(item.score);
       doc.save();
-      doc.roundedRect(x, y, 150, 56, 8).strokeColor(COLORS.border).lineWidth(1).stroke();
+      doc.roundedRect(x, y, 150, 50, 8).strokeColor(THEME.border).lineWidth(1).stroke();
       doc.restore();
-      doc.fontSize(10).fillColor(COLORS.muted).text(item.name, x + 12, y + 12);
-      doc.fontSize(18).fillColor(t.fg).text(`${item.score}/100`, x + 12, y + 28);
+      this.t(doc, item.name, x + 12, y + 10, { fontSize: 9, color: THEME.muted });
+      this.t(doc, `${item.score}/100`, x + 12, y + 26, {
+        fontSize: 16,
+        bold: true,
+        color: tone.fg,
+      });
     });
   }
 
-  private addIssuesPage(doc: any, data: ReportData) {
-    this.drawPageChrome(doc, data);
-    doc.y = 36;
+  private addIssuesPage(
+    doc: PDFKit.PDFDocument,
+    data: ReportData,
+    addPage: () => void
+  ) {
+    this.drawHeaderBar(doc, data, 'Issues & opportunities');
+    const pageW = doc.page.width;
+    const issues = this.clientIssues(data);
+    let y = 70;
 
-    doc.fontSize(20).fillColor(COLORS.ink).text('Issues & Opportunities', 48, 36);
-    doc
-      .fontSize(10)
-      .fillColor(COLORS.muted)
-      .text('Color-coded by severity. Critical items should be fixed first.', 48, 64, {
-        width: doc.page.width - 96,
+    this.t(doc, 'Issues & Opportunities', 48, y, { fontSize: 18, bold: true });
+    y += 24;
+    this.t(doc, 'Color-coded by severity. Critical items should be fixed first.', 48, y, {
+      fontSize: 10,
+      color: THEME.muted,
+      width: pageW - 96,
+    });
+    y += 28;
+
+    if (!issues.length) {
+      this.t(doc, 'No issues found. Strong foundation.', 48, y, {
+        fontSize: 12,
+        color: THEME.pass,
       });
-
-    if (!data.issues?.length) {
-      doc.fontSize(12).fillColor(COLORS.pass).text('No issues found. Strong foundation.', 48, 100);
       return;
     }
 
-    const order = ['critical', 'warning', 'info', 'good'] as const;
-    let y = 96;
-
-    for (const sev of order) {
-      const items = data.issues.filter((i) => (i.severity || 'info') === sev);
+    const boxH = 68;
+    for (const sev of ['critical', 'warning', 'info', 'good'] as const) {
+      const items = issues.filter((i) => (i.severity || 'info') === sev);
       if (!items.length) continue;
-
       const tone = severityTone(sev);
-      if (y > doc.page.height - 120) {
-        doc.addPage();
-        this.drawPageChrome(doc, data);
-        y = 40;
+
+      if (y + 30 > PAGE_BOTTOM) {
+        addPage();
+        this.drawHeaderBar(doc, data, 'Issues & opportunities');
+        y = 70;
       }
 
       doc.save();
-      doc.roundedRect(48, y, 110, 22, 6).fill(tone.bg);
+      doc.roundedRect(48, y, 100, 18, 5).fill(tone.bg);
       doc.restore();
-      doc.fontSize(9).fillColor(tone.fg).text(tone.label, 48, y + 6, { width: 110, align: 'center' });
-      doc
-        .fontSize(11)
-        .fillColor(COLORS.ink)
-        .text(`${items.length} item${items.length === 1 ? '' : 's'}`, 170, y + 5);
-      y += 36;
+      this.t(doc, tone.label, 48, y + 4, {
+        width: 100,
+        align: 'center',
+        fontSize: 8,
+        bold: true,
+        color: tone.fg,
+      });
+      this.t(doc, `${items.length} item${items.length === 1 ? '' : 's'}`, 160, y + 3, {
+        fontSize: 10,
+      });
+      y += 28;
 
-      for (const issue of items.slice(0, 12)) {
-        if (y > doc.page.height - 110) {
-          doc.addPage();
-          this.drawPageChrome(doc, data);
-          y = 40;
+      for (const issue of items.slice(0, 14)) {
+        if (y + boxH > PAGE_BOTTOM) {
+          addPage();
+          this.drawHeaderBar(doc, data, 'Issues & opportunities');
+          y = 70;
         }
 
         doc.save();
-        doc.roundedRect(48, y, doc.page.width - 96, 78, 8).fill(COLORS.white);
-        doc.roundedRect(48, y, 5, 78, 2).fill(tone.fg);
-        doc.roundedRect(48, y, doc.page.width - 96, 78, 8).strokeColor(COLORS.border).lineWidth(0.8).stroke();
+        doc.roundedRect(48, y, pageW - 96, boxH, 8).fill(THEME.white);
+        doc.roundedRect(48, y, 4, boxH, 2).fill(tone.fg);
+        doc.roundedRect(48, y, pageW - 96, boxH, 8).strokeColor(THEME.border).lineWidth(0.8).stroke();
         doc.restore();
 
-        doc.fontSize(11).fillColor(COLORS.ink).text(issue.title || 'Issue', 64, y + 10, {
-          width: doc.page.width - 130,
+        this.t(doc, issue.title || 'Issue', 64, y + 8, {
+          width: pageW - 130,
+          fontSize: 11,
+          bold: true,
         });
-        doc.fontSize(9).fillColor(COLORS.muted).text(issue.description || '', 64, y + 28, {
-          width: doc.page.width - 130,
-          height: 22,
-          ellipsis: true,
+        this.tw(doc, issue.description || '', 64, y + 26, pageW - 130, 16, {
+          fontSize: 9,
+          color: THEME.muted,
         });
         if (issue.fix_suggestion) {
-          doc
-            .fontSize(9)
-            .fillColor(COLORS.accent)
-            .text(`Fix: ${issue.fix_suggestion}`, 64, y + 52, {
-              width: doc.page.width - 130,
-              height: 20,
-              ellipsis: true,
-            });
+          this.tw(doc, `Fix: ${issue.fix_suggestion}`, 64, y + 44, pageW - 130, 16, {
+            fontSize: 9,
+            color: THEME.goldDark,
+          });
         }
-        y += 88;
+        y += boxH + 8;
       }
-      y += 8;
+      y += 4;
     }
   }
 
-  private addChecklistPage(doc: any, data: ReportData) {
-    this.drawPageChrome(doc, data);
-    doc.y = 36;
-
-    doc.fontSize(20).fillColor(COLORS.ink).text('Live Site Checklist', 48, 36);
-    doc
-      .fontSize(10)
-      .fillColor(COLORS.muted)
-      .text('Pass / fail based on data fetched from the live URL.', 48, 64);
-
+  private addChecklistPage(
+    doc: PDFKit.PDFDocument,
+    data: ReportData,
+    addPage: () => void
+  ) {
+    this.drawHeaderBar(doc, data, 'Live site checklist');
+    const pageW = doc.page.width;
     const t = data.technical || {};
     const o = data.onpage || {};
     const c = data.content || {};
+    let y = 70;
+
+    this.t(doc, 'Live Site Checklist', 48, y, { fontSize: 18, bold: true });
+    y += 24;
+    this.t(doc, 'Pass / fail based on data fetched from the live URL.', 48, y, {
+      fontSize: 10,
+      color: THEME.muted,
+      width: pageW - 96,
+    });
+    y += 26;
 
     const fmtBytes = (n?: number | null) =>
-      n == null ? '—' : n > 1024 * 1024 ? `${(n / (1024 * 1024)).toFixed(2)} MB` : `${Math.round(n / 1024)} KB`;
+      n == null
+        ? '—'
+        : n > 1024 * 1024
+          ? `${(n / (1024 * 1024)).toFixed(2)} MB`
+          : `${Math.round(n / 1024)} KB`;
 
     const rows: Array<{ section: string; label: string; value: string; pass: boolean }> = [
       { section: 'Basic SEO', label: 'Title tag present', value: o.title?.length ? `${o.title.length} chars` : 'Missing', pass: (o.title?.length || 0) > 0 },
@@ -483,128 +674,144 @@ export class PDFReportGenerator {
       { section: 'Security', label: 'Mobile viewport', value: t.mobile ? 'Present' : 'Missing', pass: !!t.mobile },
     ];
 
-    let y = 96;
     let lastSection = '';
     for (const row of rows) {
-      if (y > doc.page.height - 80) {
-        doc.addPage();
-        this.drawPageChrome(doc, data);
-        y = 40;
+      const need = row.section !== lastSection ? 48 : 28;
+      if (y + need > PAGE_BOTTOM) {
+        addPage();
+        this.drawHeaderBar(doc, data, 'Live site checklist');
+        y = 70;
         lastSection = '';
       }
+
       if (row.section !== lastSection) {
         lastSection = row.section;
-        doc.fontSize(12).fillColor(COLORS.accentDark).text(row.section, 48, y);
-        y += 22;
+        this.t(doc, row.section, 48, y, {
+          fontSize: 11,
+          bold: true,
+          color: THEME.goldDark,
+        });
+        y += 18;
       }
 
       const passTone = row.pass
-        ? { fg: COLORS.pass, bg: COLORS.passBg, label: 'PASS' }
-        : { fg: COLORS.critical, bg: COLORS.criticalBg, label: 'FAIL' };
+        ? { fg: THEME.pass, bg: THEME.passBg, label: 'PASS' }
+        : { fg: THEME.critical, bg: THEME.criticalBg, label: 'FAIL' };
 
       doc.save();
-      doc.roundedRect(48, y, doc.page.width - 96, 28, 6).fill(COLORS.light);
+      doc.roundedRect(48, y, pageW - 96, 24, 5).fill(THEME.light);
+      doc.roundedRect(56, y + 4, 40, 16, 4).fill(passTone.bg);
       doc.restore();
 
-      doc.save();
-      doc.roundedRect(56, y + 6, 42, 16, 4).fill(passTone.bg);
-      doc.restore();
-      doc.fontSize(7).fillColor(passTone.fg).text(passTone.label, 56, y + 9, { width: 42, align: 'center' });
-
-      doc.fontSize(10).fillColor(COLORS.ink).text(row.label, 108, y + 8, { width: 220 });
-      doc.fontSize(9).fillColor(COLORS.muted).text(row.value, 340, y + 8, {
-        width: doc.page.width - 400,
-        align: 'right',
+      this.t(doc, passTone.label, 56, y + 7, {
+        width: 40,
+        align: 'center',
+        fontSize: 7,
+        bold: true,
+        color: passTone.fg,
       });
-      y += 34;
+      this.t(doc, row.label, 106, y + 6, { width: 220, fontSize: 9 });
+      this.t(doc, row.value, 320, y + 6, {
+        width: pageW - 380,
+        align: 'right',
+        fontSize: 9,
+        color: THEME.muted,
+      });
+      y += 28;
     }
   }
 
-  private addRecommendationsPage(doc: any, data: ReportData) {
-    this.drawPageChrome(doc, data);
-    doc.y = 36;
-
-    doc.fontSize(20).fillColor(COLORS.ink).text('Recommendations & Next Steps', 48, 36);
-
-    const criticalCount = data.issues.filter((i) => i.severity === 'critical').length;
-    const warningCount = data.issues.filter((i) => i.severity === 'warning').length;
+  private addRecommendationsPage(doc: PDFKit.PDFDocument, data: ReportData) {
+    this.drawHeaderBar(doc, data, 'Next steps');
+    const pageW = doc.page.width;
+    const issues = this.clientIssues(data);
+    const criticalCount = issues.filter((i) => i.severity === 'critical').length;
+    const warningCount = issues.filter((i) => i.severity === 'warning').length;
     const tone = scoreTone(data.overall_score);
+    let y = 70;
 
-    doc
-      .fontSize(11)
-      .fillColor(COLORS.muted)
-      .text(
-        `Current overall score: ${data.overall_score}/100 (${tone.label}). Prioritize critical findings, then warnings, then opportunities.`,
-        48,
-        68,
-        { width: doc.page.width - 96 }
-      );
+    this.t(doc, 'Recommendations & Next Steps', 48, y, { fontSize: 18, bold: true });
+    y += 26;
+    this.tw(
+      doc,
+      `Current overall score: ${data.overall_score}/100 (${tone.label}). Prioritize critical findings, then warnings, then opportunities.`,
+      48,
+      y,
+      pageW - 96,
+      32,
+      { fontSize: 10, color: THEME.muted }
+    );
+    y += 40;
 
     const steps = [
       {
         title: '1. Resolve critical issues',
-        body: `Address ${criticalCount} critical finding${criticalCount === 1 ? '' : 's'} that block search visibility or trust (HTTPS, missing title/meta/H1).`,
+        body: `Address ${criticalCount} critical finding${criticalCount === 1 ? '' : 's'} that block search visibility or trust.`,
       },
       {
         title: '2. Clear warnings',
-        body: `Fix ${warningCount} warning${warningCount === 1 ? '' : 's'} such as alt text gaps, slow response, or weak heading structure.`,
+        body: `Fix ${warningCount} warning${warningCount === 1 ? '' : 's'} such as title/meta length, alt text, or structure gaps.`,
       },
       {
         title: '3. Strengthen advanced SEO',
-        body: 'Complete Open Graph, Twitter Card, and JSON-LD schema so pages share well and become eligible for rich results.',
+        body: 'Keep Open Graph, Twitter Card, and JSON-LD schema complete for sharing and rich results.',
       },
       {
         title: '4. Re-audit after changes',
-        body: 'Re-run this report after shipping fixes to confirm scores move and regressions are caught early.',
+        body: 'Re-run this report after shipping fixes to confirm scores improve.',
       },
     ];
 
-    let y = 110;
     steps.forEach((step) => {
       doc.save();
-      doc.roundedRect(48, y, doc.page.width - 96, 72, 10).fill(COLORS.light);
+      doc.roundedRect(48, y, pageW - 96, 58, 10).fill(THEME.light);
       doc.restore();
-      doc.fontSize(12).fillColor(COLORS.ink).text(step.title, 64, y + 14);
-      doc.fontSize(10).fillColor(COLORS.muted).text(step.body, 64, y + 36, {
-        width: doc.page.width - 128,
+      this.t(doc, step.title, 64, y + 10, { fontSize: 11, bold: true });
+      this.tw(doc, step.body, 64, y + 30, pageW - 128, 20, {
+        fontSize: 9,
+        color: THEME.muted,
       });
-      y += 84;
+      y += 68;
     });
 
-    y += 12;
+    y += 8;
     doc.save();
-    doc.roundedRect(48, y, doc.page.width - 96, 100, 12).fill(COLORS.accentDark);
+    doc.roundedRect(48, y, pageW - 96, 88, 12).fill(THEME.black);
+    doc.rect(48, y, 6, 88).fill(this.primary(data));
     doc.restore();
 
     if (!data.whiteLabel?.companyName || data.whiteLabel.companyName === 'SEOInForce') {
-      doc
-        .fontSize(14)
-        .fillColor(COLORS.white)
-        .text('Need help implementing these fixes?', 64, y + 24, {
-          width: doc.page.width - 128,
-        });
-      doc
-        .fontSize(11)
-        .fillColor('#99f6e4')
-        .text(
-          'SEOInForce can turn this audit into a prioritized action plan — technical fixes, content upgrades, and ongoing ranking work.',
-          64,
-          y + 50,
-          { width: doc.page.width - 128 }
-        );
+      this.t(doc, 'Need help implementing these fixes?', 70, y + 18, {
+        fontSize: 13,
+        bold: true,
+        color: THEME.gold,
+        width: pageW - 140,
+      });
+      this.tw(
+        doc,
+        'SEOInForce can turn this audit into a prioritized action plan — technical fixes, content upgrades, and ongoing ranking work.',
+        70,
+        y + 42,
+        pageW - 140,
+        36,
+        { fontSize: 10, color: THEME.silver }
+      );
     } else {
-      doc
-        .fontSize(14)
-        .fillColor(COLORS.white)
-        .text(`Prepared by ${data.whiteLabel.companyName}`, 64, y + 30, {
-          width: doc.page.width - 128,
-        });
-      doc
-        .fontSize(11)
-        .fillColor('#99f6e4')
-        .text('Contact your agency to prioritize and implement the recommendations in this report.', 64, y + 56, {
-          width: doc.page.width - 128,
-        });
+      this.t(doc, `Prepared by ${data.whiteLabel.companyName}`, 70, y + 24, {
+        fontSize: 13,
+        bold: true,
+        color: THEME.gold,
+        width: pageW - 140,
+      });
+      this.tw(
+        doc,
+        'Contact your agency to prioritize and implement the recommendations in this report.',
+        70,
+        y + 48,
+        pageW - 140,
+        28,
+        { fontSize: 10, color: THEME.silver }
+      );
     }
   }
 }
