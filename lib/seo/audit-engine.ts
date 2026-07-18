@@ -173,7 +173,7 @@ export class SEOAuditEngine {
         sitemap: !!technicalBase.sitemap,
       };
 
-      let technical = { ...technicalBase };
+      let technical: AuditResult['technical'] = { ...technicalBase };
       let technical_deep: AuditResult['technical_deep'];
       let issues = this.generateIssues(technical, onpage, content);
 
@@ -350,7 +350,7 @@ export class SEOAuditEngine {
     return 1 + scripts + styles + images + iframes + fonts;
   }
 
-  private async checkTechnical($: any, fetchResult: FetchResult) {
+  private async checkTechnical($: any, fetchResult: FetchResult): Promise<AuditResult['technical']> {
     const url = new URL(this.baseUrl);
     const https = url.protocol === 'https:';
 
@@ -396,6 +396,10 @@ export class SEOAuditEngine {
       request_count,
       mixed_content_count: 0,
       redirect_chain_length: 0,
+      lcp: undefined,
+      fcp: undefined,
+      tti: undefined,
+      cls: undefined,
     };
   }
 
