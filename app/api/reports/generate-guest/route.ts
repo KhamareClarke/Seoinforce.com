@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       technical_score: auditData.technical_score || 0,
       onpage_score: auditData.onpage_score || 0,
       content_score: auditData.content_score || 0,
+      categories: auditData.result?.categories || auditData.categories,
       technical: auditData.result?.technical || {},
       onpage: auditData.result?.onpage || {},
       content: auditData.result?.content || {},

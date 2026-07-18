@@ -328,6 +328,8 @@ export async function POST(request: NextRequest) {
               }
             }
           }
+          // Recalculate scores so CWV metrics affect overall score
+          Object.assign(result, auditEngine.recalculateScores(result));
           console.log('PageSpeed Insights: Successfully fetched and included in result', psiData);
         }
       } catch (psiError) {

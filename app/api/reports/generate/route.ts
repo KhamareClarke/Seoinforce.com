@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
       technical_score: audit.technical_score || 0,
       onpage_score: audit.onpage_score || 0,
       content_score: audit.content_score || 0,
+      categories: audit.raw_data?.categories,
       technical: audit.raw_data?.technical || {},
       onpage: audit.raw_data?.onpage || {},
       content: audit.raw_data?.content || {},
@@ -242,10 +243,11 @@ export async function GET(request: NextRequest) {
       technical_score: report.audits.technical_score || 0,
       onpage_score: report.audits.onpage_score || 0,
       content_score: report.audits.content_score || 0,
+      categories: report.audits.raw_data?.categories,
       technical: report.audits.raw_data?.technical || {},
       onpage: report.audits.raw_data?.onpage || {},
       content: report.audits.raw_data?.content || {},
-      issues: [],
+      issues: report.audits.raw_data?.issues || [],
       whiteLabel: report.white_label_branding || undefined,
     };
 
